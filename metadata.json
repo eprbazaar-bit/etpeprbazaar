@@ -1,0 +1,6 @@
+{
+  "name": "ETP – EPR Bazaar",
+  "description": "India's B2B EPR Credit Trading Marketplace connecting EPR credit buyers and sellers through managed rate matching and facilitated negotiations. Operated by Nyanvi Ecoclean Private Limited.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

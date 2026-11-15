@@ -1,0 +1,557 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Core authentication and role mapping record for a marketplace participant.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "role": { "type": "string", "enum": ["buyer", "seller", "facilitator", "admin"] },
+        "companyId": { "type": "string", "maxLength": 128 },
+        "profileCompleted": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["Active", "Suspended", "Pending"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "profileCompleted", "status", "createdAt"]
+    },
+    "Company": {
+      "title": "Company",
+      "description": "Corporate entity metadata for buyers and sellers.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "companyName": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "gstin": { "type": "string", "minLength": 15, "maxLength": 15 },
+        "cin": { "type": "string", "maxLength": 40 },
+        "eprRegNo": { "type": "string", "minLength": 3, "maxLength": 64 },
+        "city": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "state": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "companyName", "gstin", "eprRegNo", "city", "state", "createdAt"]
+    },
+    "Buyer": {
+      "title": "Buyer",
+      "description": "Private buyer profile including mandatory mobile contact.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "companyId": { "type": "string", "maxLength": 128 },
+        "companyName": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "contactPerson": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 160 },
+        "mobile": { "type": "string", "minLength": 10, "maxLength": 20 },
+        "gstin": { "type": "string", "minLength": 15, "maxLength": 15 },
+        "cin": { "type": "string", "maxLength": 40 },
+        "eprRegNo": { "type": "string", "maxLength": 64 },
+        "city": { "type": "string", "maxLength": 80 },
+        "state": { "type": "string", "maxLength": 80 },
+        "dealingCategories": { "type": "array" },
+        "emailNotificationsEnabled": { "type": "boolean" },
+        "verification": { "type": "string", "enum": ["Pending Review", "Verified", "Action Required"] },
+        "status": { "type": "string", "enum": ["Active", "Suspended", "Pending"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "companyId", "companyName", "contactPerson", "email", "mobile", "gstin", "eprRegNo", "verification", "status", "createdAt"]
+    },
+    "Seller": {
+      "title": "Seller",
+      "description": "Private seller/recycler profile.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "companyId": { "type": "string", "maxLength": 128 },
+        "companyName": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "contactPerson": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 160 },
+        "mobile": { "type": "string", "minLength": 10, "maxLength": 20 },
+        "gstin": { "type": "string", "minLength": 15, "maxLength": 15 },
+        "cin": { "type": "string", "maxLength": 40 },
+        "eprRegNo": { "type": "string", "maxLength": 64 },
+        "recyclerType": { "type": "string", "maxLength": 120 },
+        "city": { "type": "string", "maxLength": 80 },
+        "state": { "type": "string", "maxLength": 80 },
+        "dealingCategories": { "type": "array" },
+        "emailNotificationsEnabled": { "type": "boolean" },
+        "verification": { "type": "string", "enum": ["Pending Review", "Verified", "Action Required"] },
+        "status": { "type": "string", "enum": ["Active", "Suspended", "Pending"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "companyId", "companyName", "contactPerson", "email", "mobile", "gstin", "eprRegNo", "recyclerType", "verification", "status", "createdAt"]
+    },
+    "Facilitator": {
+      "title": "Facilitator",
+      "description": "Internal EPR Bazaar facilitator staff record.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "employeeId": { "type": "string", "maxLength": 40 },
+        "name": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 160 },
+        "phone": { "type": "string", "maxLength": 20 },
+        "department": { "type": "string", "maxLength": 120 },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "employeeId", "name", "email", "status", "createdAt"]
+    },
+    "AuthorizedFacilitator": {
+      "title": "AuthorizedFacilitator",
+      "description": "Admin-authorised facilitator Google email allowlist record.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "employeeId": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "department": { "type": "string", "maxLength": 120 },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
+        "linkedUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "name", "employeeId", "status", "createdAt", "updatedAt"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Protected platform administrator record.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 160 },
+        "roleTitle": { "type": "string", "maxLength": 80 },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email", "roleTitle", "status", "createdAt"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "EPR credit trading category configuration.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "code": { "type": "string", "maxLength": 32 },
+        "name": { "type": "string", "maxLength": 100 },
+        "shortName": { "type": "string", "maxLength": 40 },
+        "description": { "type": "string", "maxLength": 500 },
+        "unit": { "type": "string", "enum": ["MT", "KL", "Units"] },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "code", "name", "unit", "active", "createdAt"]
+    },
+    "Subcategory": {
+      "title": "Subcategory",
+      "description": "Subcategory under an EPR category.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "categoryId": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 120 },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "categoryId", "name", "active", "createdAt"]
+    },
+    "BuyerRequirement": {
+      "title": "BuyerRequirement",
+      "description": "Buyer EPR credit requirement submission.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "buyerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "categoryId": { "type": "string", "maxLength": 64 },
+        "categoryName": { "type": "string", "maxLength": 100 },
+        "subcategory": { "type": "string", "maxLength": 120 },
+        "financialYear": { "type": "string", "maxLength": 20 },
+        "requiredQty": { "type": "number" },
+        "matchedQty": { "type": "number" },
+        "remainingQty": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 16 },
+        "maxBuyingRate": { "type": "number" },
+        "requiredDate": { "type": "string", "maxLength": 32 },
+        "additionalNotes": { "type": "string", "maxLength": 1000 },
+        "status": {
+          "type": "string",
+          "enum": ["Draft", "Pending Approval", "Active", "Partially Matched", "Matched", "Order Confirmed", "Rejected", "Withdrawn"]
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "buyerUid", "categoryId", "categoryName", "subcategory", "financialYear", "requiredQty", "matchedQty", "remainingQty", "unit", "maxBuyingRate", "status", "createdAt"]
+    },
+    "SellerListing": {
+      "title": "SellerListing",
+      "description": "Anonymized seller EPR credit listing (no seller PII).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "sellerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "categoryId": { "type": "string", "maxLength": 64 },
+        "categoryName": { "type": "string", "maxLength": 100 },
+        "subcategory": { "type": "string", "maxLength": 120 },
+        "financialYear": { "type": "string", "maxLength": 20 },
+        "listedQty": { "type": "number" },
+        "allocatedQty": { "type": "number" },
+        "remainingQty": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 16 },
+        "askingRate": { "type": "number" },
+        "certificateRef": { "type": "string", "maxLength": 80 },
+        "additionalInfo": { "type": "string", "maxLength": 1000 },
+        "status": {
+          "type": "string",
+          "enum": ["Draft", "Pending Approval", "Active", "Paused", "Partially Allocated", "Allocated", "Rejected", "Withdrawn"]
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "sellerUid", "categoryId", "categoryName", "subcategory", "financialYear", "listedQty", "allocatedQty", "remainingQty", "unit", "askingRate", "status", "createdAt"]
+    },
+    "Match": {
+      "title": "Match",
+      "description": "Anonymized matching opportunity created between a buyer requirement and seller listing.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "matchKey": { "type": "string", "maxLength": 180 },
+        "requirementId": { "type": "string", "maxLength": 64 },
+        "listingId": { "type": "string", "maxLength": 64 },
+        "buyerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "sellerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "categoryId": { "type": "string", "maxLength": 64 },
+        "categoryName": { "type": "string", "maxLength": 100 },
+        "subcategory": { "type": "string", "maxLength": 120 },
+        "financialYear": { "type": "string", "maxLength": 20 },
+        "matchingQty": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 16 },
+        "buyerTargetRate": { "type": "number" },
+        "sellerAskingRate": { "type": "number" },
+        "indicativeRate": { "type": "number" },
+        "status": {
+          "type": "string",
+          "enum": ["New Match", "Under Facilitator Review", "Offer Shared", "Negotiation In Progress", "Agreed", "Order Created", "Closed"]
+        },
+        "assignedFacilitatorUid": { "type": "string", "maxLength": 128 },
+        "buyerAgreed": { "type": "boolean" },
+        "sellerAgreed": { "type": "boolean" },
+        "finalAgreedRate": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "matchKey", "requirementId", "listingId", "buyerUid", "sellerUid", "categoryId", "categoryName", "subcategory", "financialYear", "matchingQty", "unit", "buyerTargetRate", "sellerAskingRate", "indicativeRate", "status", "buyerAgreed", "sellerAgreed", "createdAt"]
+    },
+    "Offer": {
+      "title": "Offer",
+      "description": "Facilitated offer sent independently to a buyer or seller.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "matchId": { "type": "string", "maxLength": 64 },
+        "targetParty": { "type": "string", "enum": ["buyer", "seller"] },
+        "partyUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "categoryName": { "type": "string", "maxLength": 100 },
+        "subcategory": { "type": "string", "maxLength": 120 },
+        "financialYear": { "type": "string", "maxLength": 20 },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 16 },
+        "offeredRate": { "type": "number" },
+        "gstPercent": { "type": "number" },
+        "expiryDate": { "type": "string", "maxLength": 32 },
+        "facilitatorMessage": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["Pending Response", "Accepted", "Rejected", "Countered", "Expired"] },
+        "createdByUid": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "matchId", "targetParty", "partyUid", "categoryName", "subcategory", "financialYear", "quantity", "unit", "offeredRate", "gstPercent", "expiryDate", "facilitatorMessage", "status", "createdAt"]
+    },
+    "Negotiation": {
+      "title": "Negotiation",
+      "description": "Chronological negotiation entry under facilitator control.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "matchId": { "type": "string", "maxLength": 64 },
+        "buyerUid": { "type": "string", "maxLength": 128 },
+        "sellerUid": { "type": "string", "maxLength": 128 },
+        "actor": { "type": "string", "enum": ["Buyer", "Seller", "Facilitator"] },
+        "actorUid": { "type": "string", "maxLength": 128 },
+        "actionType": { "type": "string", "enum": ["Offer Sent", "Counteroffer", "Accepted", "Rejected", "Facilitator Note"] },
+        "rate": { "type": "number" },
+        "quantity": { "type": "number" },
+        "message": { "type": "string", "maxLength": 1000 },
+        "visibleToBuyer": { "type": "boolean" },
+        "visibleToSeller": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "matchId", "buyerUid", "sellerUid", "actor", "actorUid", "actionType", "message", "visibleToBuyer", "visibleToSeller", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Confirmed B2B EPR credit order.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "matchId": { "type": "string", "maxLength": 64 },
+        "buyerUid": { "type": "string", "maxLength": 128 },
+        "sellerUid": { "type": "string", "maxLength": 128 },
+        "categoryId": { "type": "string", "maxLength": 64 },
+        "categoryName": { "type": "string", "maxLength": 100 },
+        "subcategory": { "type": "string", "maxLength": 120 },
+        "financialYear": { "type": "string", "maxLength": 20 },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 16 },
+        "agreedRate": { "type": "number" },
+        "basicAmount": { "type": "number" },
+        "gstAmount": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "brokerageAmount": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["Unpaid", "Advance Paid", "Fully Paid"] },
+        "transferStatus": { "type": "string", "enum": ["Not Started", "Pending Transfer", "Verification Pending", "Transferred"] },
+        "orderStatus": {
+          "type": "string",
+          "enum": ["Deal Confirmed", "Payment Pending", "Advance Received", "Payment Completed", "EPR Credit Transfer Pending", "Transfer Verification Pending", "Transaction Completed"]
+        },
+        "invoiceNumber": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "matchId", "buyerUid", "sellerUid", "categoryId", "categoryName", "financialYear", "quantity", "unit", "agreedRate", "basicAmount", "gstAmount", "totalAmount", "brokerageAmount", "paymentStatus", "transferStatus", "orderStatus", "invoiceNumber", "createdAt"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Payment record associated with an order.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "orderId": { "type": "string", "maxLength": 64 },
+        "buyerUid": { "type": "string", "maxLength": 128 },
+        "sellerUid": { "type": "string", "maxLength": 128 },
+        "partyType": { "type": "string", "enum": ["Buyer Receivable", "Seller Payable"] },
+        "amount": { "type": "number" },
+        "paymentType": { "type": "string", "enum": ["Advance", "Balance", "Settlement"] },
+        "paymentDate": { "type": "string", "maxLength": 32 },
+        "paymentMethod": { "type": "string", "enum": ["NEFT", "RTGS", "IMPS"] },
+        "referenceNumber": { "type": "string", "maxLength": 80 },
+        "status": { "type": "string", "enum": ["Verified", "Pending Verification", "Scheduled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orderId", "buyerUid", "sellerUid", "partyType", "amount", "paymentType", "paymentDate", "paymentMethod", "referenceNumber", "status", "createdAt"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "GST tax invoice record for confirmed order.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "invoiceNumber": { "type": "string", "maxLength": 64 },
+        "orderId": { "type": "string", "maxLength": 64 },
+        "buyerUid": { "type": "string", "maxLength": 128 },
+        "sellerUid": { "type": "string", "maxLength": 128 },
+        "basicAmount": { "type": "number" },
+        "gstAmount": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "storageUrl": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "invoiceNumber", "orderId", "buyerUid", "sellerUid", "basicAmount", "gstAmount", "totalAmount", "createdAt"]
+    },
+    "DocumentRecord": {
+      "title": "DocumentRecord",
+      "description": "Metadata for files stored in Firebase Storage.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerRole": { "type": "string", "enum": ["buyer", "seller", "admin"] },
+        "category": {
+          "type": "string",
+          "enum": ["Company Registration", "GST Certificates", "EPR Registration Details", "EPR Certificates", "Supporting Documents", "Invoices", "Payment Proofs"]
+        },
+        "fileName": { "type": "string", "maxLength": 200 },
+        "storagePath": { "type": "string", "maxLength": 400 },
+        "downloadUrl": { "type": "string", "maxLength": 800 },
+        "contentType": { "type": "string", "maxLength": 100 },
+        "fileSizeBytes": { "type": "number" },
+        "verificationStatus": { "type": "string", "enum": ["Pending Review", "Verified", "Rejected"] },
+        "relatedId": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "ownerRole", "category", "fileName", "storagePath", "downloadUrl", "fileSizeBytes", "verificationStatus", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User-targeted real-time notification with duplicate guard key.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "notificationId": { "type": "string", "maxLength": 128 },
+        "recipientUid": { "type": "string", "maxLength": 128 },
+        "targetRole": { "type": "string", "enum": ["buyer", "seller", "facilitator", "admin"] },
+        "category": {
+          "type": "string",
+          "enum": ["Requirement Updates", "Listing Updates", "Matching Notifications", "Offers", "Negotiations", "Orders", "Payments", "Documents", "Account Updates"]
+        },
+        "title": { "type": "string", "maxLength": 180 },
+        "message": { "type": "string", "maxLength": 800 },
+        "dedupeKey": { "type": "string", "maxLength": 180 },
+        "listingId": { "type": "string", "maxLength": 128 },
+        "categoryId": { "type": "string", "maxLength": 64 },
+        "categoryName": { "type": "string", "maxLength": 100 },
+        "notificationType": { "type": "string", "enum": ["buyer_requirement", "seller_listing"] },
+        "emailStatus": { "type": "string", "enum": ["pending", "sent", "failed"] },
+        "sentAt": { "type": "string", "format": "date-time" },
+        "errorMessage": { "type": "string", "maxLength": 500 },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "recipientUid", "targetRole", "category", "title", "message", "dedupeKey", "read", "createdAt"]
+    },
+    "EmailDeliveryLog": {
+      "title": "EmailDeliveryLog",
+      "description": "Server-side transactional email delivery log and retry state (staff-only).",
+      "type": "object",
+      "properties": {
+        "notificationId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "listingId": { "type": "string", "maxLength": 64 },
+        "recipientUserId": { "type": "string", "maxLength": 128 },
+        "recipientEmail": { "type": "string", "maxLength": 160 },
+        "recipientRole": { "type": "string", "enum": ["buyer", "seller"] },
+        "categoryId": { "type": "string", "maxLength": 64 },
+        "category": { "type": "string", "maxLength": 100 },
+        "notificationType": { "type": "string", "enum": ["buyer_requirement", "seller_listing"] },
+        "subject": { "type": "string", "maxLength": 240 },
+        "status": { "type": "string", "enum": ["pending", "sent", "failed"] },
+        "attemptCount": { "type": "number" },
+        "provider": { "type": "string", "enum": ["resend", "sendgrid", "smtp", "none"] },
+        "providerMessageId": { "type": "string", "maxLength": 200 },
+        "providerResponse": { "type": "string", "maxLength": 400 },
+        "errorMessage": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "sentAt": { "type": "string", "format": "date-time" },
+        "lastAttemptAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["notificationId", "listingId", "recipientUserId", "recipientEmail", "recipientRole", "category", "notificationType", "status", "createdAt"]
+    },
+    "MarketRate": {
+      "title": "MarketRate",
+      "description": "Computed market rate summary per category and financial year from real Firestore listings/transactions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "categoryId": { "type": "string", "maxLength": 64 },
+        "categoryName": { "type": "string", "maxLength": 100 },
+        "financialYear": { "type": "string", "maxLength": 20 },
+        "unit": { "type": "string", "maxLength": 16 },
+        "lowestAskingRate": { "type": "number" },
+        "highestAskingRate": { "type": "number" },
+        "indicativeRate": { "type": "number" },
+        "lastTradedRate": { "type": "number" },
+        "availableQty": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "categoryId", "categoryName", "financialYear", "unit", "availableQty", "updatedAt"]
+    },
+    "TransactionRecord": {
+      "title": "TransactionRecord",
+      "description": "Completed transaction ledger record used for actual Last Traded Rate discovery.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "orderId": { "type": "string", "maxLength": 64 },
+        "categoryId": { "type": "string", "maxLength": 64 },
+        "categoryName": { "type": "string", "maxLength": 100 },
+        "financialYear": { "type": "string", "maxLength": 20 },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 16 },
+        "tradedRate": { "type": "number" },
+        "totalValue": { "type": "number" },
+        "completedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orderId", "categoryId", "categoryName", "financialYear", "quantity", "unit", "tradedRate", "totalValue", "completedAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable security and operational audit trail.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "actorUid": { "type": "string", "maxLength": 128 },
+        "actorEmail": { "type": "string", "maxLength": 160 },
+        "role": { "type": "string", "maxLength": 40 },
+        "action": { "type": "string", "maxLength": 120 },
+        "target": { "type": "string", "maxLength": 120 },
+        "details": { "type": "string", "maxLength": 600 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "actorUid", "actorEmail", "role", "action", "target", "details", "createdAt"]
+    },
+    "PlatformSettings": {
+      "title": "PlatformSettings",
+      "description": "Marketplace-wide rate matching tolerances, brokerage, and tax configuration.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "defaultBrokeragePercent": { "type": "number" },
+        "gstPercent": { "type": "number" },
+        "matchingRateTolerancePercent": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "defaultBrokeragePercent", "gstPercent", "matchingRateTolerancePercent", "updatedAt"]
+    },
+    "PublishedEprRate": {
+      "title": "PublishedEprRate",
+      "description": "Admin-approved EPR category rate displayed in the website header ticker and rate board.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "categoryId": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "categoryName": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "financialYear": { "type": "string", "minLength": 4, "maxLength": 20 },
+        "unit": { "type": "string", "enum": ["MT", "KL", "Units"] },
+        "rate": { "type": "number" },
+        "trend": { "type": "string", "enum": ["Up", "Down", "Stable"] },
+        "published": { "type": "boolean" },
+        "notes": { "type": "string", "maxLength": 300 },
+        "updatedByUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "categoryId", "categoryName", "financialYear", "unit", "rate", "published", "updatedByUid", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": { "schema": { "$ref": "#/entities/User" }, "description": "User role and onboarding state." },
+    "/companies/{companyId}": { "schema": { "$ref": "#/entities/Company" }, "description": "Registered corporate entities." },
+    "/buyers/{uid}": { "schema": { "$ref": "#/entities/Buyer" }, "description": "Private buyer KYC & contact profiles." },
+    "/sellers/{uid}": { "schema": { "$ref": "#/entities/Seller" }, "description": "Private seller KYC & contact profiles." },
+    "/facilitators/{uid}": { "schema": { "$ref": "#/entities/Facilitator" }, "description": "Authorised facilitator staff records." },
+    "/authorized_facilitators/{emailKey}": { "schema": { "$ref": "#/entities/AuthorizedFacilitator" }, "description": "Admin-authorised facilitator Google email allowlist." },
+    "/admins/{uid}": { "schema": { "$ref": "#/entities/Admin" }, "description": "Authorised administrator records." },
+    "/categories/{categoryId}": { "schema": { "$ref": "#/entities/Category" }, "description": "EPR trading categories." },
+    "/subcategories/{subcategoryId}": { "schema": { "$ref": "#/entities/Subcategory" }, "description": "EPR trading subcategories." },
+    "/buyer_requirements/{requirementId}": { "schema": { "$ref": "#/entities/BuyerRequirement" }, "description": "Buyer EPR credit requirements." },
+    "/seller_listings/{listingId}": { "schema": { "$ref": "#/entities/SellerListing" }, "description": "Anonymized seller EPR credit listings." },
+    "/matches/{matchId}": { "schema": { "$ref": "#/entities/Match" }, "description": "Matched buyer requirement & seller listing pairs." },
+    "/offers/{offerId}": { "schema": { "$ref": "#/entities/Offer" }, "description": "Facilitated offers sent to buyers or sellers." },
+    "/negotiations/{negotiationId}": { "schema": { "$ref": "#/entities/Negotiation" }, "description": "Negotiation timeline entries." },
+    "/orders/{orderId}": { "schema": { "$ref": "#/entities/Order" }, "description": "Confirmed marketplace orders." },
+    "/payments/{paymentId}": { "schema": { "$ref": "#/entities/Payment" }, "description": "Payment verification records." },
+    "/invoices/{invoiceId}": { "schema": { "$ref": "#/entities/Invoice" }, "description": "GST tax invoices." },
+    "/documents/{documentId}": { "schema": { "$ref": "#/entities/DocumentRecord" }, "description": "Uploaded file metadata." },
+    "/notifications/{notificationId}": { "schema": { "$ref": "#/entities/Notification" }, "description": "User notifications." },
+    "/email_delivery_logs/{logId}": { "schema": { "$ref": "#/entities/EmailDeliveryLog" }, "description": "Staff-only transactional email delivery logs & retries." },
+    "/market_rates/{rateId}": { "schema": { "$ref": "#/entities/MarketRate" }, "description": "Real-time market rate summaries." },
+    "/published_rates/{rateId}": { "schema": { "$ref": "#/entities/PublishedEprRate" }, "description": "Admin-approved published EPR category rates for ticker and rate board." },
+    "/transactions/{transactionId}": { "schema": { "$ref": "#/entities/TransactionRecord" }, "description": "Completed transactions for Last Traded Rate." },
+    "/audit_logs/{logId}": { "schema": { "$ref": "#/entities/AuditLog" }, "description": "Security and operations audit log." },
+    "/platform_settings/{settingId}": { "schema": { "$ref": "#/entities/PlatformSettings" }, "description": "Global platform configuration." }
+  }
+}

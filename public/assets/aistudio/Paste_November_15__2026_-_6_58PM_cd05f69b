@@ -1,0 +1,1415 @@
+# GOOGLE STITCH MASTER UI/UX DESIGN PROMPT
+# ETP – EPR BAZAAR
+## Complete Website and Application – All Pages and Screens
+
+PROJECT NAME: ETP – EPR Bazaar
+
+DOMAIN: https://etp.eprbazaar.com
+
+COMPANY: NYANVI ECOCLEAN PRIVATE LIMITED
+
+COUNTRY: INDIA
+
+PLATFORM: B2B EPR CREDIT TRADING MARKETPLACE
+
+YOUR ROLE:
+Act as a senior UI/UX designer, financial technology product designer, B2B marketplace architect and design system specialist.
+
+Design a complete, premium, modern and professional web application for ETP – EPR Bazaar.
+
+IMPORTANT:
+Do not design only the homepage. Design ALL pages, dashboards, forms, tables, modals, login screens, empty states, loading states, error states and responsive mobile screens.
+
+The entire application must have one consistent design system.
+
+==================================================
+1. BUSINESS MODEL – UNDERSTAND BEFORE DESIGNING
+==================================================
+
+ETP – EPR Bazaar connects EPR credit buyers and sellers.
+
+BUYER:
+- Selects an EPR category.
+- Enters required quantity.
+- Enters maximum buying rate.
+- Submits requirement.
+
+SELLER:
+- Selects an EPR category.
+- Enters available quantity.
+- Enters expected selling rate.
+- Submits listing.
+
+ETP MATCHING ENGINE:
+- Compares buyer requirements with seller listings.
+- Finds compatible category, financial year, quantity and rates.
+- Identifies matching opportunities.
+- Notifies both parties.
+
+EPR BAZAAR:
+- Acts as the intermediary.
+- Manages all negotiations.
+- Communicates separately with buyer and seller.
+- Records counteroffers.
+- Coordinates order confirmation and transaction progress.
+
+BUYERS AND SELLERS MUST NEVER NEGOTIATE DIRECTLY THROUGH THE PLATFORM.
+
+Neither party should see the other party's private contact information.
+
+The platform is a private managed marketplace, not a government portal or official exchange.
+
+==================================================
+2. BRAND IDENTITY AND DESIGN SYSTEM
+==================================================
+
+Brand name:
+ETP – EPR Bazaar
+
+Brand personality:
+- Trustworthy.
+- Professional.
+- Financial technology.
+- Modern.
+- Premium.
+- Transparent.
+- Business-focused.
+
+Primary colours:
+- Deep Navy Blue: #10233F
+- Dark Navy: #0A172A
+- White: #FFFFFF
+- Professional Green: #16A36A
+- Light Background: #F4F7FB
+- Neutral Grey: #64748B
+- Border Grey: #E2E8F0
+
+Typography:
+Use Inter or a similar modern professional sans-serif font.
+
+Design style:
+- Premium financial exchange dashboard.
+- Clean cards.
+- Subtle shadows.
+- Rounded corners.
+- Professional data tables.
+- Elegant charts.
+- Clear status labels.
+- Consistent spacing.
+- Minimal but useful icons.
+- Responsive layouts.
+
+Avoid:
+- Government portal-style design.
+- Overcrowded screens.
+- Excessive gradients.
+- Excessive animations.
+- Cartoon illustrations.
+- Unnecessary decorative elements.
+- CPCB recommendation claims.
+- Statutory recommendation badges.
+- Escrow account references.
+- RDF supply and truck management.
+- Unnecessary compliance modules.
+
+Create a professional EPR Bazaar logo placement in the header and sidebar. Use a temporary text-based logo if the actual logo is not supplied.
+
+==================================================
+3. COMPLETE WEBSITE SITEMAP
+==================================================
+
+Design all the following pages.
+
+PUBLIC WEBSITE:
+
+01. Homepage
+02. About EPR Bazaar
+03. How ETP Works
+04. EPR Marketplace
+05. EPR Market Rates
+06. EPR Category Details
+07. Buy EPR Credits Information
+08. Sell EPR Credits Information
+09. Contact Us
+10. Frequently Asked Questions
+11. Terms and Conditions
+12. Privacy Policy
+13. Refund and Cancellation Policy
+14. Disclaimer
+15. Buyer Guidelines
+16. Seller Guidelines
+17. Grievance Redressal
+
+AUTHENTICATION:
+
+18. Main Login Page
+19. Buyer Google Login
+20. Seller Google Login
+21. Facilitator Email/Password Login
+22. Admin Login
+23. Login Error State
+24. Access Denied Page
+25. Account Profile Completion
+26. Password Reset Screen for Facilitator
+
+BUYER PORTAL:
+
+27. Buyer Dashboard
+28. Buyer Company Profile
+29. Buyer Verification
+30. Submit EPR Requirement
+31. My Requirements
+32. Requirement Details
+33. Matching Opportunities
+34. Offers Received
+35. Offer Details
+36. Negotiation History
+37. My Orders
+38. Order Details
+39. Payment Tracking
+40. Documents and Invoices
+41. Notifications
+42. Buyer Account Settings
+
+SELLER PORTAL:
+
+43. Seller Dashboard
+44. Seller Company Profile
+45. Seller Verification
+46. Create EPR Credit Listing
+47. My Listings
+48. Edit Listing
+49. Listing Details
+50. Matching Buyer Requirements
+51. Offers Received
+52. Offer Details
+53. Negotiation History
+54. My Orders
+55. Order Details
+56. Payment Tracking
+57. Documents and Certificates
+58. Notifications
+59. Seller Account Settings
+
+FACILITATOR PORTAL:
+
+60. Facilitator Dashboard
+61. Buyer Management
+62. Buyer Details
+63. Seller Management
+64. Seller Details
+65. All Buyer Requirements
+66. All Seller Listings
+67. Matching Opportunities
+68. Match Details
+69. Negotiation Management
+70. Buyer Counteroffer
+71. Seller Counteroffer
+72. Offer Management
+73. Order Coordination
+74. Payment Follow-up
+75. Transaction Tracking
+76. Notifications
+77. Facilitator Profile
+
+ADMIN PORTAL:
+
+78. Admin Dashboard
+79. User Management
+80. Buyer Management
+81. Seller Management
+82. Facilitator Management
+83. Admin User Management
+84. Category Management
+85. Subcategory Management
+86. Listing Approval
+87. Buyer Requirement Approval
+88. Marketplace Inventory
+89. Rate Management
+90. Matching Engine Overview
+91. Negotiation Overview
+92. Order Management
+93. Payment Management
+94. GST and Invoice Management
+95. Brokerage and Revenue
+96. Document Management
+97. Reports and Analytics
+98. Audit Logs
+99. Notification Settings
+100. Platform Settings
+101. Role and Permission Settings
+
+Design these as individual screens or clearly organised screen groups. Do not omit the important screens.
+
+==================================================
+4. PUBLIC HOMEPAGE
+==================================================
+
+Create a premium landing page.
+
+HEADER:
+- EPR Bazaar logo.
+- Home.
+- Marketplace.
+- Buy Credits.
+- Sell Credits.
+- Market Rates.
+- How It Works.
+- About Us.
+- Contact.
+- Login/Register.
+
+HERO SECTION:
+
+Headline:
+India's EPR Credit Trading Marketplace
+
+Subtitle:
+Connect with EPR Credit Buyers and Sellers. Submit Your Quantity and Expected Rate. Let EPR Bazaar Manage the Negotiations.
+
+Primary CTA:
+Buy EPR Credits
+
+Secondary CTA:
+Sell EPR Credits
+
+Third CTA:
+Explore Marketplace
+
+Use a sophisticated financial marketplace visual on the right side.
+
+LIVE MARKET TICKER:
+
+Show:
+- EPR Category.
+- Lowest Asking Rate.
+- Highest Asking Rate.
+- Available Quantity.
+- Last Traded Rate.
+- Last Updated.
+
+Clearly distinguish asking rates from actual completed transaction rates.
+
+Use realistic placeholder values only as design examples. Label all sample data as DEMO DATA and never represent it as real market information.
+
+CATEGORY SECTION:
+
+Display professional category cards:
+
+1. Plastic EPR Category I.
+2. Plastic EPR Category II.
+3. Plastic EPR Category III.
+4. Plastic EPR Category IV.
+5. E-Waste EPR.
+6. Battery EPR.
+7. Tyre EPR.
+8. Used Oil EPR.
+
+HOW IT WORKS:
+
+Buyer:
+1. Register.
+2. Submit quantity and target rate.
+3. Get matching opportunities.
+4. Receive offers.
+5. Complete transaction through EPR Bazaar.
+
+Seller:
+1. Register.
+2. Submit available quantity and asking rate.
+3. Get matching buyer enquiries.
+4. Receive offers.
+5. Complete transaction through EPR Bazaar.
+
+WHY EPR BAZAAR:
+- Buyer and seller connections.
+- Rate matching.
+- Managed negotiations.
+- Transparent offers.
+- Multiple EPR categories.
+- Transaction tracking.
+
+BOTTOM CTA:
+Start Your EPR Credit Trading Journey.
+
+FOOTER:
+Company details, contact information, legal links and support.
+
+==================================================
+5. LOGIN PAGE DESIGN
+==================================================
+
+Create a premium login screen.
+
+Heading:
+Access Your EPR Trading Account
+
+Description:
+Choose your account type to continue.
+
+Create three separate login cards.
+
+BUYER LOGIN:
+Continue with Google.
+
+SELLER LOGIN:
+Continue with Google.
+
+PORTAL FACILITATOR LOGIN:
+Email address and password.
+
+Authorised initial account:
+info@eprbazaar.com
+
+ADMIN LOGIN:
+Separate protected access.
+
+IMPORTANT LOGIN RULES:
+- Buyer uses Google only.
+- Seller uses Google only.
+- Facilitator uses email/password.
+- Admin uses protected authentication.
+- No email OTP.
+- No mobile OTP.
+- No public facilitator registration.
+- No public admin registration.
+
+Show professional validation messages and loading states.
+
+==================================================
+6. BUYER DASHBOARD
+==================================================
+
+Create a premium business dashboard with a left sidebar.
+
+SIDEBAR:
+- Overview.
+- Company Profile.
+- Verification.
+- Submit Requirement.
+- My Requirements.
+- Matching Opportunities.
+- Offers Received.
+- My Orders.
+- Payments.
+- Documents.
+- Notifications.
+- Settings.
+- Logout.
+
+DASHBOARD SUMMARY CARDS:
+- Active Requirements.
+- Matching Opportunities.
+- Offers Received.
+- Active Orders.
+- Completed Transactions.
+
+Create a clean dashboard with:
+- Recent requirements table.
+- Latest matching opportunities.
+- Recent offers.
+- Order status overview.
+- Notifications.
+- Activity timeline.
+
+Add a prominent button:
++ Submit New EPR Requirement
+
+==================================================
+7. BUYER REQUIREMENT FORM
+==================================================
+
+Design a clean multi-section form.
+
+Fields:
+- EPR Category.
+- Subcategory.
+- Financial Year.
+- Required Quantity.
+- Unit.
+- Maximum Buying Rate.
+- Required Date.
+- Additional Requirements.
+- Supporting Documents.
+
+Buttons:
+- Save Draft.
+- Submit Requirement.
+- Cancel.
+
+Display a review summary before final submission.
+
+After submission, show a professional success screen with Requirement ID.
+
+==================================================
+8. BUYER REQUIREMENT LIST AND DETAILS
+==================================================
+
+MY REQUIREMENTS TABLE:
+
+Columns:
+- Requirement ID.
+- EPR Category.
+- Financial Year.
+- Required Quantity.
+- Remaining Quantity.
+- Maximum Buying Rate.
+- Matched Quantity.
+- Status.
+- Date.
+- Action.
+
+Requirement details page:
+- Requirement summary.
+- Original quantity.
+- Matched quantity.
+- Remaining quantity.
+- Target rate.
+- Matching history.
+- Offer history.
+- Documents.
+- Activity timeline.
+
+==================================================
+9. BUYER MATCHING OPPORTUNITIES
+==================================================
+
+Create a matching opportunities page.
+
+Display:
+- Match ID.
+- EPR Category.
+- Financial Year.
+- Matching Quantity.
+- Indicative Rate.
+- Match Status.
+- Date.
+- View Details.
+
+Do not show seller company names or private seller information to buyers.
+
+Show this message:
+
+"A matching opportunity has been identified. EPR Bazaar will coordinate the negotiation and share suitable offers with you."
+
+Create filters:
+- Category.
+- Financial Year.
+- Quantity.
+- Date.
+- Status.
+
+==================================================
+10. BUYER OFFERS AND NEGOTIATIONS
+==================================================
+
+Offer listing page:
+- Offer ID.
+- Match ID.
+- EPR Category.
+- Quantity.
+- Offered Rate.
+- Offer Expiry.
+- Status.
+- Action.
+
+Offer details page:
+- Offered quantity.
+- Offered rate.
+- Applicable taxes, where known.
+- Total indicative amount.
+- Validity.
+- Facilitator message.
+- Offer history.
+
+Buttons:
+- Accept Offer.
+- Reject Offer.
+- Submit Counteroffer.
+
+Counteroffer form:
+- Revised Target Rate.
+- Quantity.
+- Message.
+
+Show a clear confirmation before accepting or rejecting.
+
+Never reveal the seller's identity or contact information.
+
+==================================================
+11. SELLER DASHBOARD
+==================================================
+
+SIDEBAR:
+- Overview.
+- Company Profile.
+- Verification.
+- Create Listing.
+- My Listings.
+- Matching Opportunities.
+- Offers Received.
+- My Orders.
+- Payments.
+- Documents.
+- Notifications.
+- Settings.
+- Logout.
+
+SUMMARY CARDS:
+- Active Listings.
+- Available Quantity.
+- Matching Opportunities.
+- Offers Received.
+- Active Orders.
+- Completed Transactions.
+
+Dashboard sections:
+- Recent listings.
+- Latest matches.
+- Recent offers.
+- Quantity availability.
+- Order status.
+- Activity timeline.
+
+Prominent CTA:
++ List EPR Credits
+
+==================================================
+12. SELLER LISTING FORM
+==================================================
+
+Create a professional multi-section form.
+
+Fields:
+- EPR Category.
+- Subcategory.
+- Financial Year.
+- Available Quantity.
+- Unit.
+- Expected Selling Rate.
+- Certificate Reference Number, if applicable.
+- Supporting Documents.
+- Additional Information.
+
+Buttons:
+- Save Draft.
+- Submit for Approval.
+- Cancel.
+
+After submission, show a Listing ID and pending approval status.
+
+==================================================
+13. SELLER LISTING MANAGEMENT
+==================================================
+
+MY LISTINGS TABLE:
+
+Columns:
+- Listing ID.
+- EPR Category.
+- Financial Year.
+- Listed Quantity.
+- Allocated Quantity.
+- Remaining Quantity.
+- Asking Rate.
+- Status.
+- Date.
+- Actions.
+
+Actions:
+- View.
+- Edit.
+- Pause.
+- Resume.
+- Withdraw.
+
+Listing detail page:
+- Listing summary.
+- Original quantity.
+- Allocated quantity.
+- Remaining quantity.
+- Asking rate.
+- Matching opportunities.
+- Offers.
+- Order history.
+- Documents.
+- Activity timeline.
+
+==================================================
+14. SELLER MATCHING AND OFFERS
+==================================================
+
+Matching opportunities:
+- Match ID.
+- EPR Category.
+- Financial Year.
+- Requested Quantity.
+- Potential Matching Rate.
+- Status.
+- Action.
+
+Do not show buyer company names or private buyer information.
+
+Show this message:
+
+"A buyer requirement matches your listed EPR credits. EPR Bazaar will coordinate the negotiation and communicate the offer."
+
+Offers received:
+- Offer ID.
+- Category.
+- Quantity.
+- Proposed Rate.
+- Validity.
+- Status.
+- Action.
+
+Seller actions:
+- Accept.
+- Reject.
+- Submit Counteroffer.
+
+Never allow direct buyer-seller communication.
+
+==================================================
+15. FACILITATOR DASHBOARD
+==================================================
+
+Create an enterprise-grade internal operations dashboard.
+
+SIDEBAR:
+- Overview.
+- Buyers.
+- Sellers.
+- Buyer Requirements.
+- Seller Listings.
+- Matching Opportunities.
+- Negotiations.
+- Offers.
+- Orders.
+- Payments.
+- Transaction Tracking.
+- Notifications.
+- My Profile.
+- Logout.
+
+SUMMARY CARDS:
+- New Buyer Requirements.
+- New Seller Listings.
+- Pending Matches.
+- Active Negotiations.
+- Pending Buyer Responses.
+- Pending Seller Responses.
+- Confirmed Deals.
+- Orders in Progress.
+
+Show:
+- Pending work queue.
+- Recent matching opportunities.
+- Priority negotiations.
+- Latest activity.
+- Upcoming follow-ups.
+
+Use clear status indicators.
+
+==================================================
+16. FACILITATOR MATCHING MANAGEMENT
+==================================================
+
+Create a detailed matching management screen.
+
+Columns:
+- Match ID.
+- Buyer Requirement ID.
+- Seller Listing ID.
+- Category.
+- Financial Year.
+- Matching Quantity.
+- Buyer Target Rate.
+- Seller Asking Rate.
+- Rate Difference.
+- Match Status.
+- Assigned Facilitator.
+- Date.
+- Action.
+
+Facilitator can open a match and see both parties' private information.
+
+The match detail screen should contain two separate panels.
+
+BUYER PANEL:
+- Company.
+- Contact person.
+- Contact details.
+- Target quantity.
+- Maximum buying rate.
+
+SELLER PANEL:
+- Company.
+- Contact person.
+- Contact details.
+- Available quantity.
+- Expected selling rate.
+
+NEGOTIATION PANEL:
+- Buyer offers.
+- Seller offers.
+- Counteroffers.
+- Facilitator notes.
+- Full history.
+
+Provide actions:
+- Contact Buyer.
+- Contact Seller.
+- Submit Buyer Offer.
+- Submit Seller Offer.
+- Add Negotiation Note.
+- Confirm Both Parties' Agreement.
+
+==================================================
+17. ADMIN DASHBOARD
+==================================================
+
+Create a powerful super-admin dashboard.
+
+SIDEBAR:
+- Overview.
+- User Management.
+- Buyers.
+- Sellers.
+- Facilitators.
+- Admin Users.
+- Categories.
+- Listings.
+- Buyer Requirements.
+- Marketplace Inventory.
+- Rate Board.
+- Matching Engine.
+- Negotiations.
+- Orders.
+- Payments.
+- GST and Invoices.
+- Brokerage and Revenue.
+- Documents.
+- Reports.
+- Audit Logs.
+- Notifications.
+- Settings.
+- Permissions.
+
+SUMMARY CARDS:
+- Total Buyers.
+- Total Sellers.
+- Active Listings.
+- Available EPR Quantity.
+- Active Buyer Requirements.
+- Matching Opportunities.
+- Active Negotiations.
+- Active Orders.
+- Completed Transactions.
+- Pending Payments.
+- Revenue.
+
+Charts:
+- Category-wise listings.
+- Monthly transaction volume.
+- Buyer and seller registrations.
+- Orders by status.
+- Revenue trends.
+
+All charts must use clearly labelled sample data in the design prototype.
+
+==================================================
+18. ADMIN USER MANAGEMENT
+==================================================
+
+Design pages for:
+
+Buyer Management:
+- Buyer ID.
+- Company.
+- Email.
+- Registration Date.
+- Verification.
+- Status.
+- Actions.
+
+Seller Management:
+- Seller ID.
+- Company.
+- Email.
+- Registration Date.
+- Verification.
+- Status.
+- Actions.
+
+Facilitator Management:
+- Employee ID.
+- Name.
+- Company Email.
+- Assigned Matches.
+- Active Tasks.
+- Status.
+
+Admin User Management:
+- Admin ID.
+- Name.
+- Email.
+- Permissions.
+- Status.
+
+Create user detail pages and approval modals.
+
+==================================================
+19. CATEGORY MANAGEMENT
+==================================================
+
+Create category management screens.
+
+Initial categories:
+- Plastic EPR Category I.
+- Plastic EPR Category II.
+- Plastic EPR Category III.
+- Plastic EPR Category IV.
+- E-Waste.
+- Battery.
+- Tyre.
+- Used Oil.
+
+Admin can:
+- Add category.
+- Edit category.
+- Add subcategory.
+- Disable category.
+- Configure unit.
+- Configure applicable financial years.
+
+Use a professional table and modal forms.
+
+==================================================
+20. LISTING AND REQUIREMENT APPROVAL
+==================================================
+
+Create two separate approval sections.
+
+SELLER LISTING APPROVAL:
+- Listing ID.
+- Seller.
+- Category.
+- Quantity.
+- Rate.
+- Financial Year.
+- Documents.
+- Submission Date.
+- Approval Status.
+
+Actions:
+- Approve.
+- Reject.
+- Request More Information.
+
+BUYER REQUIREMENT APPROVAL:
+- Requirement ID.
+- Buyer.
+- Category.
+- Quantity.
+- Target Rate.
+- Financial Year.
+- Documents.
+- Submission Date.
+- Status.
+
+Actions:
+- Approve.
+- Reject.
+- Request More Information.
+
+Show confirmation modals for critical actions.
+
+==================================================
+21. LIVE MARKET RATE BOARD
+==================================================
+
+Design a premium financial exchange-style market rate screen.
+
+Top section:
+- EPR Market Overview.
+- Category selector.
+- Financial year selector.
+- Last updated timestamp.
+
+Rate cards:
+- Lowest Seller Asking Rate.
+- Highest Seller Asking Rate.
+- Indicative Market Rate.
+- Actual Last Traded Rate.
+- Available Listed Quantity.
+
+Table:
+- Category.
+- Subcategory.
+- Financial Year.
+- Lowest Asking Rate.
+- Highest Asking Rate.
+- Indicative Rate.
+- Available Quantity.
+- Last Traded Rate.
+- Last Updated.
+
+Use different visual treatments for asking rate, indicative rate and actual traded rate.
+
+Add a continuously scrolling ticker.
+
+Only actual completed transaction records should be presented as last traded rates.
+
+Do not invent real market rates.
+
+==================================================
+22. MATCHING ENGINE ADMIN SCREEN
+==================================================
+
+Design a matching engine monitoring page.
+
+Display:
+- Total Active Buyer Requirements.
+- Total Active Seller Listings.
+- Potential Matches.
+- Confirmed Matches.
+- Partial Matches.
+- Unmatched Requirements.
+
+Matching table:
+- Match ID.
+- Buyer Requirement.
+- Seller Listing.
+- Category.
+- Financial Year.
+- Buyer Rate.
+- Seller Rate.
+- Quantity.
+- Match Status.
+- Assigned Facilitator.
+
+Include filters and match detail panels.
+
+==================================================
+23. NEGOTIATION MANAGEMENT
+==================================================
+
+Create an advanced negotiation workspace.
+
+Display:
+- Match ID.
+- Buyer.
+- Seller.
+- Category.
+- Quantity.
+- Buyer Target Rate.
+- Seller Asking Rate.
+- Latest Offer.
+- Negotiation Status.
+- Facilitator.
+
+Negotiation detail screen:
+- Buyer offer history.
+- Seller offer history.
+- Counteroffer history.
+- Facilitator notes.
+- Time and date.
+- Final agreed rate.
+- Both parties' acceptance status.
+
+Use a chronological timeline.
+
+==================================================
+24. ORDER MANAGEMENT
+==================================================
+
+Create order management pages.
+
+Order table:
+- Order ID.
+- Buyer.
+- Seller.
+- EPR Category.
+- Quantity.
+- Agreed Rate.
+- Basic Amount.
+- GST.
+- Total Amount.
+- Payment Status.
+- Transfer Status.
+- Order Status.
+- Date.
+
+Order details page:
+- Order overview.
+- Buyer information.
+- Seller information.
+- Category and financial year.
+- Agreed quantity.
+- Agreed rate.
+- Amount breakdown.
+- Payment records.
+- Documents.
+- Transaction timeline.
+
+Statuses:
+- Negotiation Pending.
+- Deal Confirmed.
+- Payment Pending.
+- Advance Received.
+- Payment Completed.
+- EPR Credit Transfer Pending.
+- Transfer Verification Pending.
+- Transaction Completed.
+
+==================================================
+25. PAYMENT AND FINANCE MANAGEMENT
+==================================================
+
+Create financial dashboards.
+
+Cards:
+- Total Transaction Value.
+- Payments Received.
+- Payments Pending.
+- Seller Payables.
+- Buyer Receivables.
+- GST.
+- Brokerage Revenue.
+
+Tables:
+- Payment ID.
+- Order ID.
+- Party.
+- Amount.
+- Payment Date.
+- Payment Method.
+- Reference Number.
+- Status.
+
+Create:
+- Payment details.
+- Advance payment form.
+- Balance payment form.
+- Invoice view.
+- GST breakdown.
+- Brokerage calculation.
+- Financial reports.
+
+Do not display or describe the platform as an escrow service.
+
+==================================================
+26. REPORTS AND ANALYTICS
+==================================================
+
+Design professional report screens.
+
+Reports:
+- Buyer-wise.
+- Seller-wise.
+- Category-wise.
+- Financial year-wise.
+- Listing-wise.
+- Requirement-wise.
+- Match-wise.
+- Negotiation-wise.
+- Order-wise.
+- Payment-wise.
+- Brokerage-wise.
+- Monthly transaction report.
+
+Include:
+- Date range filters.
+- Category filters.
+- Status filters.
+- Search.
+- Export Excel.
+- Export CSV.
+- Export PDF.
+
+==================================================
+27. DOCUMENT MANAGEMENT
+==================================================
+
+Create document management screens.
+
+Document categories:
+- Company Registration.
+- GST Certificates.
+- EPR Registration Details.
+- EPR Certificates.
+- Supporting Documents.
+- Invoices.
+- Payment Proofs.
+
+Design:
+- Document cards.
+- Preview screen.
+- Upload modal.
+- Verification status.
+- Download action.
+- Approval history.
+
+==================================================
+28. NOTIFICATION CENTRE
+==================================================
+
+Create a notification centre for all account types.
+
+Notification categories:
+- Requirement Updates.
+- Listing Updates.
+- Matching Notifications.
+- Offers.
+- Negotiations.
+- Orders.
+- Payments.
+- Documents.
+- Account Updates.
+
+Design:
+- Notification list.
+- Unread indicators.
+- Notification filters.
+- Mark as Read.
+- Notification details.
+
+==================================================
+29. ACCOUNT SETTINGS
+==================================================
+
+Buyer/Seller:
+- Profile Information.
+- Company Details.
+- Contact Details.
+- Security.
+- Notification Preferences.
+- Logout.
+
+Facilitator:
+- Employee Profile.
+- Password Change.
+- Notification Preferences.
+- Logout.
+
+Admin:
+- Company Settings.
+- User Permissions.
+- Categories.
+- Platform Configuration.
+- Notification Settings.
+- Security Settings.
+- Audit Logs.
+
+==================================================
+30. LEGAL AND INFORMATION PAGES
+==================================================
+
+Create consistent public-facing page templates for:
+
+- About EPR Bazaar.
+- How ETP Works.
+- Terms and Conditions.
+- Privacy Policy.
+- Refund and Cancellation Policy.
+- Disclaimer.
+- Buyer Guidelines.
+- Seller Guidelines.
+- Contact Us.
+- Grievance Redressal.
+- FAQ.
+
+Company details:
+
+NYANVI ECOCLEAN PRIVATE LIMITED
+
+CIN:
+U38220WB2024PTC274770
+
+Address:
+4th Floor, Saket Building, 44, Park St, Mullick Bazar, Park Street Area, Kolkata, West Bengal 700016, India.
+
+Email:
+info@eprbazaar.com
+
+Phone:
+7439103014
+
+Website:
+https://etp.eprbazaar.com
+
+Do not invent legal claims, certifications, government approvals or official endorsements.
+
+Use editable placeholder content where final legal text needs professional review.
+
+==================================================
+31. RESPONSIVE DESIGN
+==================================================
+
+Design all major screens for:
+
+DESKTOP:
+1440px wide primary design.
+
+LAPTOP:
+1280px wide.
+
+TABLET:
+768px wide.
+
+MOBILE:
+390px wide.
+
+Mobile requirements:
+- Collapsible navigation.
+- Responsive tables.
+- Card-based table alternatives.
+- Touch-friendly buttons.
+- Readable forms.
+- Sticky primary actions where useful.
+- Mobile login screens.
+- Mobile dashboards.
+
+Do not simply shrink desktop designs. Adapt layouts properly.
+
+==================================================
+32. UI STATES AND COMPONENTS
+==================================================
+
+For every major form and interactive screen, design:
+
+- Default state.
+- Loading state.
+- Success state.
+- Validation error.
+- Empty state.
+- No matching records.
+- Permission denied.
+- Network error.
+- Confirmation modal.
+- Delete/withdraw confirmation.
+- Pending approval.
+- Rejected status.
+
+Create a reusable design system:
+
+- Buttons.
+- Inputs.
+- Dropdowns.
+- Date pickers.
+- Tables.
+- Status badges.
+- Cards.
+- Charts.
+- Sidebars.
+- Navigation.
+- Modals.
+- Tabs.
+- Search bars.
+- Pagination.
+- Toast notifications.
+
+==================================================
+33. IMPORTANT DESIGN RESTRICTIONS
+==================================================
+
+DO NOT INCLUDE:
+
+- RDF supply or truck management.
+- Escrow account.
+- Email OTP login.
+- Mobile OTP login.
+- CPCB recommendation claims.
+- Government recommendation claims.
+- Government exchange branding.
+- Statutory recommendation badges.
+- Direct buyer-seller chat.
+- Buyer visibility into seller private contact information.
+- Seller visibility into buyer private contact information.
+
+Keep the platform focused on:
+
+BUYER QUANTITY + TARGET RATE.
+
+SELLER QUANTITY + ASKING RATE.
+
+AUTOMATIC RATE MATCHING.
+
+NOTIFICATIONS TO BOTH PARTIES.
+
+EPR BAZAAR-MANAGED NEGOTIATIONS.
+
+ORDER AND PAYMENT TRACKING.
+
+==================================================
+34. STITCH OUTPUT AND DESIGN ORGANISATION
+==================================================
+
+Create the entire project as a consistent multi-page design.
+
+Organise screens into these groups:
+
+01_Public_Website
+02_Authentication
+03_Buyer_Portal
+04_Seller_Portal
+05_Facilitator_Portal
+06_Admin_Portal
+07_Reports_and_Analytics
+08_Legal_and_Information
+09_Responsive_Mobile
+10_Design_System
+
+Use consistent components and layouts across every group.
+
+Use realistic placeholder content only for visual demonstration. Label prototype data as DEMO DATA.
+
+Maintain consistent naming for all pages and components.
+
+Create a DESIGN.md file describing:
+- Brand colours.
+- Typography.
+- Spacing.
+- Components.
+- Layout rules.
+- Navigation.
+- Responsive breakpoints.
+- Interaction patterns.
+
+Ensure the screens can later be exported and implemented as a React and TypeScript application in Google AI Studio.
+
+==================================================
+35. FINAL INSTRUCTION TO GOOGLE STITCH
+==================================================
+
+Design every page listed in this prompt.
+
+Do not stop after the homepage.
+
+Do not create only a few sample dashboards.
+
+Complete the public website, Buyer Portal, Seller Portal, Facilitator Portal and Admin Portal.
+
+Keep all screens visually consistent.
+
+Prioritise usability, clarity, professional financial marketplace styling and responsive design.
+
+The most important user experience is extremely simple:
+
+BUYER:
+Submit EPR category + quantity + target rate.
+
+SELLER:
+Submit EPR category + quantity + asking rate.
+
+ETP:
+Find matching opportunities and notify both parties.
+
+FACILITATOR:
+Manage negotiations independently with both parties.
+
+ADMIN:
+Control the entire marketplace.
+
+The result should look like a professionally designed Indian B2B financial technology marketplace, ready for implementation as ETP – EPR Bazaar.

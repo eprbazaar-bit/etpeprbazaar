@@ -1,0 +1,250 @@
+---
+name: ETP - EPR Bazaar
+colors:
+  surface: '#f8f9ff'
+  surface-dim: '#cbdbf5'
+  surface-bright: '#f8f9ff'
+  surface-container-lowest: '#ffffff'
+  surface-container-low: '#eff4ff'
+  surface-container: '#e5eeff'
+  surface-container-high: '#dce9ff'
+  surface-container-highest: '#d3e4fe'
+  on-surface: '#0b1c30'
+  on-surface-variant: '#44474d'
+  inverse-surface: '#213145'
+  inverse-on-surface: '#eaf1ff'
+  outline: '#75777e'
+  outline-variant: '#c5c6ce'
+  surface-tint: '#4d5f7e'
+  primary: '#000d23'
+  on-primary: '#ffffff'
+  primary-container: '#10233f'
+  on-primary-container: '#798bac'
+  inverse-primary: '#b5c7eb'
+  secondary: '#006d44'
+  on-secondary: '#ffffff'
+  secondary-container: '#7df7b6'
+  on-secondary-container: '#007147'
+  tertiary: '#00092e'
+  on-tertiary: '#ffffff'
+  tertiary-container: '#001c5f'
+  on-tertiary-container: '#6e86da'
+  error: '#ba1a1a'
+  on-error: '#ffffff'
+  error-container: '#ffdad6'
+  on-error-container: '#93000a'
+  primary-fixed: '#d6e3ff'
+  primary-fixed-dim: '#b5c7eb'
+  on-primary-fixed: '#071b37'
+  on-primary-fixed-variant: '#364765'
+  secondary-fixed: '#80fab9'
+  secondary-fixed-dim: '#62dd9e'
+  on-secondary-fixed: '#002111'
+  on-secondary-fixed-variant: '#005232'
+  tertiary-fixed: '#dce1ff'
+  tertiary-fixed-dim: '#b6c4ff'
+  on-tertiary-fixed: '#00164e'
+  on-tertiary-fixed-variant: '#264191'
+  background: '#f8f9ff'
+  on-background: '#0b1c30'
+  surface-variant: '#d3e4fe'
+typography:
+  display-lg:
+    fontFamily: Inter
+    fontSize: 36px
+    fontWeight: '700'
+    lineHeight: 44px
+    letterSpacing: -0.02em
+  display-lg-mobile:
+    fontFamily: Inter
+    fontSize: 28px
+    fontWeight: '700'
+    lineHeight: 36px
+    letterSpacing: -0.015em
+  headline-lg:
+    fontFamily: Inter
+    fontSize: 28px
+    fontWeight: '600'
+    lineHeight: 36px
+    letterSpacing: -0.015em
+  headline-lg-mobile:
+    fontFamily: Inter
+    fontSize: 22px
+    fontWeight: '600'
+    lineHeight: 30px
+    letterSpacing: -0.01em
+  headline-md:
+    fontFamily: Inter
+    fontSize: 20px
+    fontWeight: '600'
+    lineHeight: 28px
+    letterSpacing: -0.01em
+  headline-sm:
+    fontFamily: Inter
+    fontSize: 16px
+    fontWeight: '600'
+    lineHeight: 24px
+    letterSpacing: -0.005em
+  body-lg:
+    fontFamily: Inter
+    fontSize: 16px
+    fontWeight: '400'
+    lineHeight: 24px
+    letterSpacing: 0em
+  body-md:
+    fontFamily: Inter
+    fontSize: 14px
+    fontWeight: '400'
+    lineHeight: 20px
+    letterSpacing: 0em
+  body-sm:
+    fontFamily: Inter
+    fontSize: 12px
+    fontWeight: '400'
+    lineHeight: 18px
+    letterSpacing: 0.005em
+  label-numeric-lg:
+    fontFamily: JetBrains Mono
+    fontSize: 16px
+    fontWeight: '600'
+    lineHeight: 20px
+    letterSpacing: -0.02em
+  label-numeric-md:
+    fontFamily: JetBrains Mono
+    fontSize: 13px
+    fontWeight: '500'
+    lineHeight: 16px
+    letterSpacing: -0.01em
+  label-numeric-sm:
+    fontFamily: JetBrains Mono
+    fontSize: 11px
+    fontWeight: '500'
+    lineHeight: 14px
+    letterSpacing: 0em
+  label-caps:
+    fontFamily: Inter
+    fontSize: 11px
+    fontWeight: '600'
+    lineHeight: 14px
+    letterSpacing: 0.06em
+rounded:
+  sm: 0.25rem
+  DEFAULT: 0.5rem
+  md: 0.75rem
+  lg: 1rem
+  xl: 1.5rem
+  full: 9999px
+spacing:
+  gutter: 1rem
+  gutter-desktop: 1.5rem
+  margin: 1rem
+  margin-tablet: 1.5rem
+  margin-desktop: 2rem
+  space-xs: 0.25rem
+  space-sm: 0.5rem
+  space-md: 1rem
+  space-lg: 1.5rem
+  space-xl: 2rem
+---
+
+## Brand & Style
+
+The design system establishes a premier institutional trading terminal aesthetic tailored for environmental commodity trading, Extended Producer Responsibility (EPR) credit matching, and compliance settlement. It balances the rigor, speed, and precision of a tier-one financial exchange with the ecological validation of clean industrial commerce. 
+
+The visual style blends **Corporate Modern** with **High-Density Fintech Utility**:
+- **Tone:** Authoritative, disciplined, transparent, and auditable. It eliminates decorative ambiguity in favor of crisp visual hierarchy, high legibility, and high-frequency trade data density.
+- **Audience:** Institutional compliance heads, large-scale recyclers, authorized producer responsibility organizations (PROs), brand conglomerates, and environmental commodity brokers.
+- **Aesthetic Tenets:** Zero-illustration realism; dense tabular grids; structured card boundaries; low-key, high-precision micro-interactions; and razor-sharp status indicators that communicate liquidity, compliance clearance, and price discovery instantly.
+
+## Colors
+
+The palette balances institutional strength with unambiguous financial signaling. Deep navy structures anchor the layout, while deliberate emerald green highlights liquidity, successful bid-ask matches, and compliance verification.
+
+### Core Palette Roles
+- **Primary (`#10233F`):** Institutional Navy for primary structural elements, mastheads, primary CTA buttons, table headers, and high-importance UI framing. Deep tone variant `#0A172A` serves as root text and active state fill.
+- **Secondary (`#16A36A`):** Trading Emerald. Represents matched orders, buy signals, certified inventory, verified compliance badges, and affirmative financial triggers. Interaction hover targets `#15803D`.
+- **Tertiary (`#1E3A8A`):** Deep Slate Blue. Deployed for informational highlights, active tab indicators, metric comparison markers, and secondary navigation accents.
+- **Neutral Canvas (`#F4F7FB`):** Ultra-clean Light Slate background that reduces glare during extended trading operations while giving depth against `#FFFFFF` containers.
+- **Neutral Slate (`#64748B`):** Structural borders (`#E2E8F0` and `#CBD5E1`), secondary metadata, ticker labels, and disabled states.
+
+### Status Indicators
+- **Matched / Clearance / Bullish:** Hex `#16A36A` on Surface `#DCFCE7` (Border `#86EFAC`).
+- **Pending / In Escrow / Warning:** Hex `#D97706` on Surface `#FEF3C7` (Border `#FDE68A`).
+- **Active / Settlement Notice / Info:** Hex `#0284C7` on Surface `#E0F2FE` (Border `#BAE6FD`).
+- **Rejected / Void / Critical Action:** Hex `#E11D48` on Surface `#FFE4E6` (Border `#FECDD3`).
+
+## Typography
+
+Typography drives high-velocity trade parsing, strict compliance audit trails, and reliable data scanning. The system pairs **Inter** for structural headers, content, and labels with **JetBrains Mono** for strictly aligned numerical data.
+
+- **Tabular Figures Rule:** All bid-ask depths, lot sizes, certificate numbers, monetary valuations, and EPR tonnage balances must use `font-feature-settings: "tnum" 1, "cv05" 1` or explicitly inherit the `label-numeric` hierarchy to ensure tabular numbers align perfectly without jitter.
+- **Hierarchy Structure:** Headers (`display`, `headline`) are restrained, utilizing tight negative tracking to maintain a compact, executive presence. Uppercase metadata labels (`label-caps`) utilize `0.06em` letter spacing for fast, legible recognition of order states and categories.
+
+## Layout & Spacing
+
+The layout is built around a precision financial workbench model, optimizing horizontal data density and vertical rhythm without clutter.
+
+### Grid & Density Architecture
+- **Desktop (1200px+):** 12-column layout with 24px (`gutter-desktop`) gutters and 32px (`margin-desktop`) outer padding. Allows 3-to-4 column split configurations (e.g., Live Order Book | Trade Blotter | Market Depth Chart | Instant Order Placement Terminal).
+- **Tablet (768px – 1199px):** 8-column layout with 16px gutters and 24px margins. Order execution slips dock to fixed slide-over panels or modal bottom sheets.
+- **Mobile (Below 768px):** 4-column layout with 16px gutters and 16px margins. Financial tables enable horizontal scrolling with pinned left columns (Credit Type / Tonnage) and collapsible metric panes.
+
+### Spacing Philosophy
+- Base layout increment adheres strictly to a 4px/8px baseline.
+- `space-xs` (4px) and `space-sm` (8px) govern tight financial data pairings, input field internal paddings, and status tag insets.
+- `space-md` (16px) establishes standard card body padding, maintaining consistent visual breathing room between discrete trade tiles.
+- `space-xl` (32px) defines boundary separations between distinct functional blotters and top-level portfolio summaries.
+
+## Elevation & Depth
+
+Visual hierarchy uses a refined physical paper-over-slate paradigm with crisp structural boundaries rather than deep blur effects. Every floating element communicates actionable priority without obscuring dense market feeds.
+
+### Elevation Levels
+- **Level 0 (Flat / Canvas):** Surface color `#F4F7FB`. Used for foundational page layout canvas, table backdrop fills, and secondary row zebra-striping.
+- **Level 1 (Card & Module Foundation):** Pure white (`#FFFFFF`) surface combined with a crisp structural hairline border (`1px solid #E2E8F0`) and micro-shadow: `0 1px 2px 0 rgba(16, 35, 63, 0.04)`. Applied to standard data cards, metrics containers, and primary trade tables.
+- **Level 2 (Active Focus & Interactive Hover):** Elevated cards on hover, popover filters, and floating dropdowns. Border `#CBD5E1` with shadow: `0 4px 6px -1px rgba(16, 35, 63, 0.08), 0 2px 4px -2px rgba(16, 35, 63, 0.04)`.
+- **Level 3 (Modals, Order Slips & Floating Action Drawers):** Critical compliance verification modals, bid/ask placement drawers, and context menus. Shadow: `0 10px 15px -3px rgba(16, 35, 63, 0.12), 0 4px 6px -4px rgba(16, 35, 63, 0.04)` combined with backdrop scrim `rgba(10, 23, 42, 0.45)` with `backdrop-filter: blur(2px)`.
+
+### Border Integrity
+Every container strictly enforces a 1px border. No UI surface floats solely on shadow alone, ensuring clear boundary delineation under varying display calibrations.
+
+## Shapes
+
+The design system enforces a uniform geometric curvature setting of **Level 2 (Rounded)**:
+- **Base Element Corner Radius:** 8px (`0.5rem`). Applied to buttons, input fields, interactive cards, status modules, and modal containers.
+- **Nested & Minor Elements:** 4px (`0.25rem`). Used for inline code snippets, numeric micro-tags, table row selection check boxes, and tab selectors.
+- **Pill Indicators (`9999px`):** Reserved exclusively for market status indicators (e.g., `MATCHED`, `PENDING ESCROW`, `VERIFIED`), ticker labels, and compliance category badges (e.g., `Cat-I Rigid Plastic`, `Cat-III Multi-layer`). Never apply pill radii to actionable input buttons or structural containers.
+
+## Components
+
+### Buttons & Interactive Triggers
+- **Primary Trading Action:** Background `#10233F`, text `#FFFFFF`, border `1px solid transparent`, height 40px, padding `0 16px`, font weight 600. Hover: `#0A172A`. Active: `#060E1A`.
+- **Order Match / Buy Action:** Background `#16A36A`, text `#FFFFFF`. Hover: `#15803D`.
+- **Secondary Action:** Background `#FFFFFF`, text `#10233F`, border `1px solid #CBD5E1`. Hover: `#F8FAFC`, border `#94A3B8`.
+- **Ghost Action:** Background transparent, text `#64748B`. Hover: `#F1F5F9`, text `#0F172A`.
+
+### Financial Cards & Trading Blotters
+- **Structure:** Pure white `#FFFFFF` surface, 8px border-radius, 1px `#E2E8F0` border, `space-md` (16px) internal padding.
+- **Header Slot:** Fixed 48px height with bottom border `1px solid #F1F5F9`, featuring category title in `headline-sm` with optional right-aligned ticker or filtering pill.
+
+### Status Pills & Compliance Badges
+- **Height:** 22px height, padding `2px 8px`, border-radius 9999px.
+- **Styling:** Strict uppercase `label-caps`. 
+  - Verified/Matched: Background `#DCFCE7`, text `#15803D`, border `1px solid #86EFAC`.
+  - Pending Clearance: Background `#FEF3C7`, text `#B45309`, border `1px solid #FDE68A`.
+  - Audit Rejected: Background `#FFE4E6`, text `#BE123C`, border `1px solid #FECDD3`.
+  - Informational/Active: Background `#E0F2FE`, text `#0369A1`, border `1px solid #BAE6FD`.
+
+### Data Tables & Order Books
+- **Header Cells:** Background `#F8FAFC`, color `#64748B`, height 36px, `label-caps` typography, border bottom `2px solid #E2E8F0`.
+- **Data Rows:** Height 44px, alternating background on hover `#F8FAFC`, border bottom `1px solid #F1F5F9`.
+- **Numeric Alignment:** Numerical metrics (INR/MT, Credit Tonnage, Subtotal) align strictly right using `label-numeric-md`.
+
+### Input Fields & Order Formulation Slips
+- **Dimensions:** Height 40px, padding 0 12px, border-radius 8px, border `1px solid #CBD5E1`, background `#FFFFFF`.
+- **Focus State:** Border `#1E3A8A`, ring `2px solid rgba(30, 58, 138, 0.15)`, outline none.
+- **Currency & Metric Affixes:** Embedded right-aligned affixes (`INR`, `MT`, `Units`) in `label-numeric-sm` with color `#94A3B8`.
+
+### Disclaimer & Environment Notice Callouts
+- **Demo Data Disclaimer:** Minimalistic bar with background `#F1F5F9`, border `1px solid #CBD5E1`, text `#475569`, tracking `0.02em`, prepended with a monospaced indicator `[SIMULATED FEED]`.
+- **Regulatory Footnote:** Sub-11px typography documenting Central Pollution Control Board (CPCB) guideline conformance attached to checkout validation gates.

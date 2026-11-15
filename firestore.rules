@@ -1,0 +1,903 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core Security Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidEmailKey(emailKey) {
+      return emailKey is string
+        && emailKey.size() >= 3
+        && emailKey.size() <= 160
+        && emailKey.matches('^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'ajaykumartiwari609@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isAuthorizedFacilitatorEmail() {
+      return isSignedIn()
+        && ('email' in request.auth.token)
+        && request.auth.token.email is string
+        && exists(/databases/$(database)/documents/authorized_facilitators/$(request.auth.token.email.lower()))
+        && get(/databases/$(database)/documents/authorized_facilitators/$(request.auth.token.email.lower())).data.status == 'Active';
+    }
+
+    function isFacilitator() {
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/facilitators/$(request.auth.uid))
+          && get(/databases/$(database)/documents/facilitators/$(request.auth.uid)).data.status == 'Active') ||
+        isAuthorizedFacilitatorEmail()
+      );
+    }
+
+    function isStaff() {
+      return isAdmin() || isFacilitator();
+    }
+
+    // Entity Validators
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'profileCompleted', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'role', 'companyId', 'profileCompleted', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120))
+        && (!('companyId' in data) || (data.companyId is string && data.companyId.size() <= 128))
+        && data.role in ['buyer', 'seller', 'facilitator', 'admin']
+        && data.profileCompleted is bool
+        && data.status in ['Active', 'Suspended', 'Pending']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCompany(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'companyName', 'gstin', 'eprRegNo', 'city', 'state', 'createdAt'])
+        && data.keys().hasOnly(['id', 'ownerUid', 'companyName', 'gstin', 'cin', 'eprRegNo', 'city', 'state', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.ownerUid)
+        && data.companyName is string && data.companyName.size() >= 2 && data.companyName.size() <= 180
+        && data.gstin is string && data.gstin.size() == 15
+        && (!('cin' in data) || (data.cin is string && data.cin.size() <= 40))
+        && data.eprRegNo is string && data.eprRegNo.size() >= 3 && data.eprRegNo.size() <= 64
+        && data.city is string && data.city.size() >= 2 && data.city.size() <= 80
+        && data.state is string && data.state.size() >= 2 && data.state.size() <= 80
+        && data.createdAt is timestamp;
+    }
+
+    function isValidBuyer(data) {
+      return data.keys().hasAll(['uid', 'companyId', 'companyName', 'contactPerson', 'email', 'mobile', 'gstin', 'eprRegNo', 'verification', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'companyId', 'companyName', 'contactPerson', 'email', 'mobile', 'gstin', 'cin', 'eprRegNo', 'city', 'state', 'dealingCategories', 'emailNotificationsEnabled', 'verification', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && isValidId(data.companyId)
+        && data.companyName is string && data.companyName.size() >= 2 && data.companyName.size() <= 180
+        && data.contactPerson is string && data.contactPerson.size() >= 2 && data.contactPerson.size() <= 120
+        && data.email is string && data.email.size() <= 160
+        && data.mobile is string && data.mobile.size() >= 10 && data.mobile.size() <= 20
+        && data.gstin is string && data.gstin.size() == 15
+        && (!('cin' in data) || (data.cin is string && data.cin.size() <= 40))
+        && data.eprRegNo is string && data.eprRegNo.size() <= 64
+        && (!('city' in data) || (data.city is string && data.city.size() <= 80))
+        && (!('state' in data) || (data.state is string && data.state.size() <= 80))
+        && (!('dealingCategories' in data) || (data.dealingCategories is list && data.dealingCategories.size() <= 30 && (data.dealingCategories.size() == 0 || data.dealingCategories[0] is string)))
+        && (!('emailNotificationsEnabled' in data) || data.emailNotificationsEnabled is bool)
+        && data.verification in ['Pending Review', 'Verified', 'Action Required']
+        && data.status in ['Active', 'Suspended', 'Pending']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSeller(data) {
+      return data.keys().hasAll(['uid', 'companyId', 'companyName', 'contactPerson', 'email', 'mobile', 'gstin', 'eprRegNo', 'recyclerType', 'verification', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'companyId', 'companyName', 'contactPerson', 'email', 'mobile', 'gstin', 'cin', 'eprRegNo', 'recyclerType', 'city', 'state', 'dealingCategories', 'emailNotificationsEnabled', 'verification', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && isValidId(data.companyId)
+        && data.companyName is string && data.companyName.size() >= 2 && data.companyName.size() <= 180
+        && data.contactPerson is string && data.contactPerson.size() >= 2 && data.contactPerson.size() <= 120
+        && data.email is string && data.email.size() <= 160
+        && data.mobile is string && data.mobile.size() >= 10 && data.mobile.size() <= 20
+        && data.gstin is string && data.gstin.size() == 15
+        && (!('cin' in data) || (data.cin is string && data.cin.size() <= 40))
+        && data.eprRegNo is string && data.eprRegNo.size() <= 64
+        && data.recyclerType is string && data.recyclerType.size() <= 120
+        && (!('city' in data) || (data.city is string && data.city.size() <= 80))
+        && (!('state' in data) || (data.state is string && data.state.size() <= 80))
+        && (!('dealingCategories' in data) || (data.dealingCategories is list && data.dealingCategories.size() <= 30 && (data.dealingCategories.size() == 0 || data.dealingCategories[0] is string)))
+        && (!('emailNotificationsEnabled' in data) || data.emailNotificationsEnabled is bool)
+        && data.verification in ['Pending Review', 'Verified', 'Action Required']
+        && data.status in ['Active', 'Suspended', 'Pending']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidFacilitator(data) {
+      return data.keys().hasAll(['uid', 'employeeId', 'name', 'email', 'status', 'createdAt'])
+        && data.keys().hasOnly(['uid', 'employeeId', 'name', 'email', 'phone', 'department', 'status', 'createdAt'])
+        && isValidId(data.uid)
+        && data.employeeId is string && data.employeeId.size() <= 40
+        && data.name is string && data.name.size() <= 120
+        && data.email is string && data.email.size() <= 160
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 20))
+        && (!('department' in data) || (data.department is string && data.department.size() <= 120))
+        && data.status in ['Active', 'Inactive']
+        && data.createdAt is timestamp;
+    }
+
+    function isValidAuthorizedFacilitator(data) {
+      return data.keys().hasAll(['email', 'name', 'employeeId', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['email', 'name', 'employeeId', 'department', 'status', 'linkedUid', 'createdAt', 'updatedAt'])
+        && isValidEmailKey(data.email)
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.employeeId is string && data.employeeId.size() >= 1 && data.employeeId.size() <= 40
+        && (!('department' in data) || (data.department is string && data.department.size() <= 120))
+        && data.status in ['Active', 'Inactive']
+        && (!('linkedUid' in data) || isValidId(data.linkedUid))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAdminDoc(data) {
+      return data.keys().hasAll(['uid', 'name', 'email', 'roleTitle', 'status', 'createdAt'])
+        && data.keys().hasOnly(['uid', 'name', 'email', 'roleTitle', 'status', 'createdAt'])
+        && isValidId(data.uid)
+        && data.name is string && data.name.size() <= 120
+        && data.email is string && data.email.size() <= 160
+        && data.roleTitle is string && data.roleTitle.size() <= 80
+        && data.status in ['Active', 'Inactive']
+        && data.createdAt is timestamp;
+    }
+
+    function isValidCategory(data) {
+      return data.keys().hasAll(['id', 'code', 'name', 'unit', 'active', 'createdAt'])
+        && data.keys().hasOnly(['id', 'code', 'name', 'shortName', 'description', 'unit', 'financialYears', 'active', 'createdAt'])
+        && isValidId(data.id)
+        && data.code is string && data.code.size() <= 32
+        && data.name is string && data.name.size() <= 100
+        && (!('shortName' in data) || (data.shortName is string && data.shortName.size() <= 40))
+        && (!('description' in data) || (data.description is string && data.description.size() <= 500))
+        && data.unit in ['MT', 'KL', 'Units']
+        && (!('financialYears' in data) || (data.financialYears is list && data.financialYears.size() <= 10))
+        && data.active is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidSubcategory(data) {
+      return data.keys().hasAll(['id', 'categoryId', 'name', 'active', 'createdAt'])
+        && data.keys().hasOnly(['id', 'categoryId', 'name', 'active', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.categoryId)
+        && data.name is string && data.name.size() <= 120
+        && data.active is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidRequirement(data) {
+      return data.keys().hasAll(['id', 'buyerUid', 'categoryId', 'categoryName', 'subcategory', 'financialYear', 'requiredQty', 'matchedQty', 'remainingQty', 'unit', 'maxBuyingRate', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'buyerUid', 'categoryId', 'categoryName', 'subcategory', 'financialYear', 'requiredQty', 'matchedQty', 'remainingQty', 'unit', 'maxBuyingRate', 'requiredDate', 'additionalNotes', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.buyerUid)
+        && isValidId(data.categoryId)
+        && data.categoryName is string && data.categoryName.size() <= 100
+        && data.subcategory is string && data.subcategory.size() <= 120
+        && data.financialYear is string && data.financialYear.size() <= 20
+        && data.requiredQty is number && data.requiredQty > 0
+        && data.matchedQty is number && data.matchedQty >= 0
+        && data.remainingQty is number && data.remainingQty >= 0
+        && data.unit is string && data.unit.size() <= 16
+        && data.maxBuyingRate is number && data.maxBuyingRate > 0
+        && (!('requiredDate' in data) || (data.requiredDate is string && data.requiredDate.size() <= 32))
+        && (!('additionalNotes' in data) || (data.additionalNotes is string && data.additionalNotes.size() <= 1000))
+        && data.status in ['Draft', 'Pending Approval', 'Active', 'Partially Matched', 'Matched', 'Order Confirmed', 'Rejected', 'Withdrawn']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidListing(data) {
+      return data.keys().hasAll(['id', 'sellerUid', 'categoryId', 'categoryName', 'subcategory', 'financialYear', 'listedQty', 'allocatedQty', 'remainingQty', 'unit', 'askingRate', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'sellerUid', 'categoryId', 'categoryName', 'subcategory', 'financialYear', 'listedQty', 'allocatedQty', 'remainingQty', 'unit', 'askingRate', 'certificateRef', 'additionalInfo', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.sellerUid)
+        && isValidId(data.categoryId)
+        && data.categoryName is string && data.categoryName.size() <= 100
+        && data.subcategory is string && data.subcategory.size() <= 120
+        && data.financialYear is string && data.financialYear.size() <= 20
+        && data.listedQty is number && data.listedQty > 0
+        && data.allocatedQty is number && data.allocatedQty >= 0
+        && data.remainingQty is number && data.remainingQty >= 0
+        && data.unit is string && data.unit.size() <= 16
+        && data.askingRate is number && data.askingRate > 0
+        && (!('certificateRef' in data) || (data.certificateRef is string && data.certificateRef.size() <= 80))
+        && (!('additionalInfo' in data) || (data.additionalInfo is string && data.additionalInfo.size() <= 1000))
+        && data.status in ['Draft', 'Pending Approval', 'Active', 'Paused', 'Partially Allocated', 'Allocated', 'Rejected', 'Withdrawn']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidMatch(data) {
+      return data.keys().hasAll(['id', 'matchKey', 'requirementId', 'listingId', 'buyerUid', 'sellerUid', 'categoryId', 'categoryName', 'subcategory', 'financialYear', 'matchingQty', 'unit', 'buyerTargetRate', 'sellerAskingRate', 'indicativeRate', 'status', 'buyerAgreed', 'sellerAgreed', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'matchKey', 'requirementId', 'listingId', 'buyerUid', 'sellerUid', 'categoryId', 'categoryName', 'subcategory', 'financialYear', 'matchingQty', 'unit', 'buyerTargetRate', 'sellerAskingRate', 'indicativeRate', 'status', 'assignedFacilitatorUid', 'buyerAgreed', 'sellerAgreed', 'finalAgreedRate', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && data.matchKey is string && data.matchKey.size() <= 180
+        && isValidId(data.requirementId)
+        && isValidId(data.listingId)
+        && isValidId(data.buyerUid)
+        && isValidId(data.sellerUid)
+        && isValidId(data.categoryId)
+        && data.categoryName is string && data.categoryName.size() <= 100
+        && data.subcategory is string && data.subcategory.size() <= 120
+        && data.financialYear is string && data.financialYear.size() <= 20
+        && data.matchingQty is number && data.matchingQty > 0
+        && data.unit is string && data.unit.size() <= 16
+        && data.buyerTargetRate is number && data.buyerTargetRate > 0
+        && data.sellerAskingRate is number && data.sellerAskingRate > 0
+        && data.indicativeRate is number && data.indicativeRate > 0
+        && data.status in ['New Match', 'Under Facilitator Review', 'Offer Shared', 'Negotiation In Progress', 'Agreed', 'Order Created', 'Closed']
+        && (!('assignedFacilitatorUid' in data) || (data.assignedFacilitatorUid is string && data.assignedFacilitatorUid.size() <= 128))
+        && data.buyerAgreed is bool
+        && data.sellerAgreed is bool
+        && (!('finalAgreedRate' in data) || (data.finalAgreedRate is number && data.finalAgreedRate > 0))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidOffer(data) {
+      return data.keys().hasAll(['id', 'matchId', 'targetParty', 'partyUid', 'categoryName', 'subcategory', 'financialYear', 'quantity', 'unit', 'offeredRate', 'gstPercent', 'expiryDate', 'facilitatorMessage', 'status', 'createdByUid', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'matchId', 'targetParty', 'partyUid', 'categoryName', 'subcategory', 'financialYear', 'quantity', 'unit', 'offeredRate', 'gstPercent', 'expiryDate', 'facilitatorMessage', 'status', 'createdByUid', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.matchId)
+        && data.targetParty in ['buyer', 'seller']
+        && isValidId(data.partyUid)
+        && data.categoryName is string && data.categoryName.size() <= 100
+        && data.subcategory is string && data.subcategory.size() <= 120
+        && data.financialYear is string && data.financialYear.size() <= 20
+        && data.quantity is number && data.quantity > 0
+        && data.unit is string && data.unit.size() <= 16
+        && data.offeredRate is number && data.offeredRate > 0
+        && data.gstPercent is number && data.gstPercent >= 0
+        && data.expiryDate is string && data.expiryDate.size() <= 32
+        && data.facilitatorMessage is string && data.facilitatorMessage.size() <= 1000
+        && data.status in ['Pending Response', 'Accepted', 'Rejected', 'Countered', 'Expired']
+        && isValidId(data.createdByUid)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidNegotiation(data) {
+      return data.keys().hasAll(['id', 'matchId', 'buyerUid', 'sellerUid', 'actor', 'actorUid', 'actionType', 'message', 'visibleToBuyer', 'visibleToSeller', 'createdAt'])
+        && data.keys().hasOnly(['id', 'matchId', 'buyerUid', 'sellerUid', 'actor', 'actorUid', 'actionType', 'rate', 'quantity', 'message', 'visibleToBuyer', 'visibleToSeller', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.matchId)
+        && isValidId(data.buyerUid)
+        && isValidId(data.sellerUid)
+        && data.actor in ['Buyer', 'Seller', 'Facilitator']
+        && isValidId(data.actorUid)
+        && data.actionType in ['Offer Sent', 'Counteroffer', 'Accepted', 'Rejected', 'Facilitator Note']
+        && (!('rate' in data) || data.rate is number)
+        && (!('quantity' in data) || data.quantity is number)
+        && data.message is string && data.message.size() <= 1000
+        && data.visibleToBuyer is bool
+        && data.visibleToSeller is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['id', 'matchId', 'buyerUid', 'sellerUid', 'categoryId', 'categoryName', 'subcategory', 'financialYear', 'quantity', 'unit', 'agreedRate', 'basicAmount', 'gstAmount', 'totalAmount', 'brokerageAmount', 'paymentStatus', 'transferStatus', 'orderStatus', 'invoiceNumber', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'matchId', 'buyerUid', 'sellerUid', 'categoryId', 'categoryName', 'subcategory', 'financialYear', 'quantity', 'unit', 'agreedRate', 'basicAmount', 'gstAmount', 'totalAmount', 'brokerageAmount', 'paymentStatus', 'transferStatus', 'orderStatus', 'invoiceNumber', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.matchId)
+        && isValidId(data.buyerUid)
+        && isValidId(data.sellerUid)
+        && isValidId(data.categoryId)
+        && data.categoryName is string && data.categoryName.size() <= 100
+        && data.subcategory is string && data.subcategory.size() <= 120
+        && data.financialYear is string && data.financialYear.size() <= 20
+        && data.quantity is number && data.quantity > 0
+        && data.unit is string && data.unit.size() <= 16
+        && data.agreedRate is number && data.agreedRate > 0
+        && data.basicAmount is number && data.basicAmount > 0
+        && data.gstAmount is number && data.gstAmount >= 0
+        && data.totalAmount is number && data.totalAmount > 0
+        && data.brokerageAmount is number && data.brokerageAmount >= 0
+        && data.paymentStatus in ['Unpaid', 'Advance Paid', 'Fully Paid']
+        && data.transferStatus in ['Not Started', 'Pending Transfer', 'Verification Pending', 'Transferred']
+        && data.orderStatus in ['Deal Confirmed', 'Payment Pending', 'Advance Received', 'Payment Completed', 'EPR Credit Transfer Pending', 'Transfer Verification Pending', 'Transaction Completed']
+        && data.invoiceNumber is string && data.invoiceNumber.size() <= 64
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPayment(data) {
+      return data.keys().hasAll(['id', 'orderId', 'buyerUid', 'sellerUid', 'partyType', 'amount', 'paymentType', 'paymentDate', 'paymentMethod', 'referenceNumber', 'status', 'createdAt'])
+        && data.keys().hasOnly(['id', 'orderId', 'buyerUid', 'sellerUid', 'partyType', 'amount', 'paymentType', 'paymentDate', 'paymentMethod', 'referenceNumber', 'status', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.orderId)
+        && isValidId(data.buyerUid)
+        && isValidId(data.sellerUid)
+        && data.partyType in ['Buyer Receivable', 'Seller Payable']
+        && data.amount is number && data.amount > 0
+        && data.paymentType in ['Advance', 'Balance', 'Settlement']
+        && data.paymentDate is string && data.paymentDate.size() <= 32
+        && data.paymentMethod in ['NEFT', 'RTGS', 'IMPS']
+        && data.referenceNumber is string && data.referenceNumber.size() <= 80
+        && data.status in ['Verified', 'Pending Verification', 'Scheduled']
+        && data.createdAt is timestamp;
+    }
+
+    function isValidInvoice(data) {
+      return data.keys().hasAll(['id', 'invoiceNumber', 'orderId', 'buyerUid', 'sellerUid', 'basicAmount', 'gstAmount', 'totalAmount', 'createdAt'])
+        && data.keys().hasOnly(['id', 'invoiceNumber', 'orderId', 'buyerUid', 'sellerUid', 'basicAmount', 'gstAmount', 'totalAmount', 'storageUrl', 'createdAt'])
+        && isValidId(data.id)
+        && data.invoiceNumber is string && data.invoiceNumber.size() <= 64
+        && isValidId(data.orderId)
+        && isValidId(data.buyerUid)
+        && isValidId(data.sellerUid)
+        && data.basicAmount is number
+        && data.gstAmount is number
+        && data.totalAmount is number
+        && (!('storageUrl' in data) || (data.storageUrl is string && data.storageUrl.size() <= 500))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidDocument(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'ownerRole', 'category', 'fileName', 'storagePath', 'downloadUrl', 'fileSizeBytes', 'verificationStatus', 'createdAt'])
+        && data.keys().hasOnly(['id', 'ownerUid', 'ownerRole', 'category', 'fileName', 'storagePath', 'downloadUrl', 'contentType', 'fileSizeBytes', 'verificationStatus', 'relatedId', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.ownerUid)
+        && data.ownerRole in ['buyer', 'seller', 'admin']
+        && data.category in ['Company Registration', 'GST Certificates', 'EPR Registration Details', 'EPR Certificates', 'Supporting Documents', 'Invoices', 'Payment Proofs']
+        && data.fileName is string && data.fileName.size() <= 200
+        && data.storagePath is string && data.storagePath.size() <= 400
+        && data.downloadUrl is string && data.downloadUrl.size() <= 800
+        && (!('contentType' in data) || (data.contentType is string && data.contentType.size() <= 100))
+        && data.fileSizeBytes is number && data.fileSizeBytes > 0 && data.fileSizeBytes <= 10485760
+        && data.verificationStatus in ['Pending Review', 'Verified', 'Rejected']
+        && (!('relatedId' in data) || (data.relatedId is string && data.relatedId.size() <= 64))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll(['id', 'recipientUid', 'targetRole', 'category', 'title', 'message', 'dedupeKey', 'read', 'createdAt'])
+        && data.keys().hasOnly(['id', 'notificationId', 'recipientUid', 'targetRole', 'category', 'title', 'message', 'dedupeKey', 'listingId', 'categoryId', 'categoryName', 'notificationType', 'emailStatus', 'sentAt', 'errorMessage', 'read', 'createdAt'])
+        && isValidId(data.id)
+        && (!('notificationId' in data) || isValidId(data.notificationId))
+        && isValidId(data.recipientUid)
+        && data.targetRole in ['buyer', 'seller', 'facilitator', 'admin']
+        && data.category in ['Requirement Updates', 'Listing Updates', 'Matching Notifications', 'Offers', 'Negotiations', 'Orders', 'Payments', 'Documents', 'Account Updates']
+        && data.title is string && data.title.size() <= 180
+        && data.message is string && data.message.size() <= 800
+        && data.dedupeKey is string && data.dedupeKey.size() <= 180
+        && (!('listingId' in data) || (data.listingId is string && data.listingId.size() <= 128))
+        && (!('categoryId' in data) || (data.categoryId is string && data.categoryId.size() <= 64))
+        && (!('categoryName' in data) || (data.categoryName is string && data.categoryName.size() <= 100))
+        && (!('notificationType' in data) || data.notificationType in ['buyer_requirement', 'seller_listing'])
+        && (!('emailStatus' in data) || data.emailStatus in ['pending', 'sent', 'failed'])
+        && (!('sentAt' in data) || data.sentAt is timestamp)
+        && (!('errorMessage' in data) || (data.errorMessage is string && data.errorMessage.size() <= 500))
+        && data.read is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidMarketRate(data) {
+      return data.keys().hasAll(['id', 'categoryId', 'categoryName', 'financialYear', 'unit', 'availableQty', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'categoryId', 'categoryName', 'financialYear', 'unit', 'lowestAskingRate', 'highestAskingRate', 'indicativeRate', 'lastTradedRate', 'availableQty', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.categoryId)
+        && data.categoryName is string && data.categoryName.size() <= 100
+        && data.financialYear is string && data.financialYear.size() <= 20
+        && data.unit is string && data.unit.size() <= 16
+        && (!('lowestAskingRate' in data) || data.lowestAskingRate is number)
+        && (!('highestAskingRate' in data) || data.highestAskingRate is number)
+        && (!('indicativeRate' in data) || data.indicativeRate is number)
+        && (!('lastTradedRate' in data) || data.lastTradedRate is number)
+        && data.availableQty is number && data.availableQty >= 0
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['id', 'orderId', 'categoryId', 'categoryName', 'financialYear', 'quantity', 'unit', 'tradedRate', 'totalValue', 'completedAt'])
+        && data.keys().hasOnly(['id', 'orderId', 'categoryId', 'categoryName', 'financialYear', 'quantity', 'unit', 'tradedRate', 'totalValue', 'completedAt'])
+        && isValidId(data.id)
+        && isValidId(data.orderId)
+        && isValidId(data.categoryId)
+        && data.categoryName is string && data.categoryName.size() <= 100
+        && data.financialYear is string && data.financialYear.size() <= 20
+        && data.quantity is number && data.quantity > 0
+        && data.unit is string && data.unit.size() <= 16
+        && data.tradedRate is number && data.tradedRate > 0
+        && data.totalValue is number && data.totalValue > 0
+        && data.completedAt is timestamp;
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['id', 'actorUid', 'actorEmail', 'role', 'action', 'target', 'details', 'createdAt'])
+        && data.keys().hasOnly(['id', 'actorUid', 'actorEmail', 'role', 'action', 'target', 'details', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.actorUid)
+        && data.actorEmail is string && data.actorEmail.size() <= 160
+        && data.role is string && data.role.size() <= 40
+        && data.action is string && data.action.size() <= 120
+        && data.target is string && data.target.size() <= 120
+        && data.details is string && data.details.size() <= 600
+        && data.createdAt is timestamp;
+    }
+
+    function isValidPlatformSettings(data) {
+      return data.keys().hasAll(['id', 'defaultBrokeragePercent', 'gstPercent', 'matchingRateTolerancePercent', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'defaultBrokeragePercent', 'gstPercent', 'matchingRateTolerancePercent', 'updatedAt'])
+        && isValidId(data.id)
+        && data.defaultBrokeragePercent is number && data.defaultBrokeragePercent >= 0
+        && data.gstPercent is number && data.gstPercent >= 0
+        && data.matchingRateTolerancePercent is number && data.matchingRateTolerancePercent >= 0
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPublishedRate(data) {
+      return data.keys().hasAll(['id', 'categoryId', 'categoryName', 'financialYear', 'unit', 'rate', 'published', 'updatedByUid', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'categoryId', 'categoryName', 'financialYear', 'unit', 'rate', 'trend', 'published', 'notes', 'updatedByUid', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.categoryId)
+        && data.categoryName is string && data.categoryName.size() >= 2 && data.categoryName.size() <= 100
+        && data.financialYear is string && data.financialYear.size() >= 4 && data.financialYear.size() <= 20
+        && data.unit in ['MT', 'KL', 'Units']
+        && data.rate is number && data.rate > 0
+        && (!('trend' in data) || data.trend in ['Up', 'Down', 'Stable'])
+        && data.published is bool
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 300))
+        && isValidId(data.updatedByUid)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // 1. users (strict RBAC: users can only self-register as buyer or seller)
+    match /users/{uid} {
+      allow get: if isValidId(uid) && isSignedIn() && (uid == request.auth.uid || isStaff());
+      allow list: if isStaff();
+      allow create: if isValidId(uid) && isSignedIn() && isValidUser(incoming())
+        && uid == request.auth.uid
+        && incoming().uid == request.auth.uid
+        && incoming().role in ['buyer', 'seller']
+        && incoming().status == 'Active'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(uid) && isSignedIn() && isValidUser(incoming()) && (
+        isAdmin() ||
+        (uid == request.auth.uid
+          && incoming().uid == existing().uid
+          && incoming().role == existing().role
+          && incoming().status == existing().status
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'companyId', 'profileCompleted', 'updatedAt']))
+      );
+      allow delete: if false;
+    }
+
+    // 2. companies
+    match /companies/{companyId} {
+      allow get: if isValidId(companyId) && isSignedIn() && (resource == null || existing().ownerUid == request.auth.uid || isStaff());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isStaff());
+      allow create: if isValidId(companyId) && isSignedIn() && isValidCompany(incoming())
+        && incoming().id == companyId
+        && incoming().ownerUid == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(companyId) && isSignedIn() && isValidCompany(incoming()) && isAdmin();
+      allow delete: if false;
+    }
+
+    // 3. buyers (PII isolated: visible only to owner, facilitator, admin)
+    match /buyers/{uid} {
+      allow get: if isValidId(uid) && isSignedIn() && (uid == request.auth.uid || isStaff());
+      allow list: if isStaff();
+      allow create: if isValidId(uid) && isSignedIn() && isValidBuyer(incoming())
+        && uid == request.auth.uid
+        && incoming().uid == request.auth.uid
+        && incoming().verification == 'Pending Review'
+        && incoming().status == 'Active'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/companies/$(incoming().companyId));
+      allow update: if isValidId(uid) && isSignedIn() && isValidBuyer(incoming()) && (
+        isAdmin() ||
+        (uid == request.auth.uid
+          && incoming().uid == existing().uid
+          && incoming().verification == existing().verification
+          && incoming().status == existing().status
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['contactPerson', 'mobile', 'city', 'state', 'dealingCategories', 'emailNotificationsEnabled', 'updatedAt']))
+      );
+      allow delete: if false;
+    }
+
+    // 4. sellers (PII isolated: visible only to owner, facilitator, admin)
+    match /sellers/{uid} {
+      allow get: if isValidId(uid) && isSignedIn() && (uid == request.auth.uid || isStaff());
+      allow list: if isStaff();
+      allow create: if isValidId(uid) && isSignedIn() && isValidSeller(incoming())
+        && uid == request.auth.uid
+        && incoming().uid == request.auth.uid
+        && incoming().verification == 'Pending Review'
+        && incoming().status == 'Active'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/companies/$(incoming().companyId));
+      allow update: if isValidId(uid) && isSignedIn() && isValidSeller(incoming()) && (
+        isAdmin() ||
+        (uid == request.auth.uid
+          && incoming().uid == existing().uid
+          && incoming().verification == existing().verification
+          && incoming().status == existing().status
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['contactPerson', 'mobile', 'city', 'state', 'dealingCategories', 'emailNotificationsEnabled', 'updatedAt']))
+      );
+      allow delete: if false;
+    }
+
+    // 5. facilitators (created/managed by Admin, or bootstrapped on first sign-in for active allowlisted Google emails)
+    match /facilitators/{uid} {
+      allow get: if isValidId(uid) && isSignedIn() && (uid == request.auth.uid || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(uid) && isSignedIn() && isValidFacilitator(incoming()) && (
+        (isAdmin() && incoming().createdAt == request.time) ||
+        (uid == request.auth.uid
+          && incoming().uid == request.auth.uid
+          && ('email' in request.auth.token)
+          && incoming().email == request.auth.token.email.lower()
+          && incoming().status == 'Active'
+          && incoming().createdAt == request.time
+          && isAuthorizedFacilitatorEmail())
+      );
+      allow update: if isValidId(uid) && isAdmin() && isValidFacilitator(incoming());
+      allow delete: if isValidId(uid) && isAdmin();
+    }
+
+    // 5b. authorized_facilitators (Admin-provisioned facilitator Google emails)
+    match /authorized_facilitators/{emailKey} {
+      allow get: if isValidEmailKey(emailKey) && isSignedIn() && (
+        isAdmin() ||
+        (('email' in request.auth.token) && request.auth.token.email.lower() == emailKey)
+      );
+      allow list: if isAdmin();
+      allow create: if isValidEmailKey(emailKey) && isAdmin() && isValidAuthorizedFacilitator(incoming())
+        && incoming().email == emailKey
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidEmailKey(emailKey) && isSignedIn() && isValidAuthorizedFacilitator(incoming()) && (
+        (isAdmin()
+          && incoming().email == existing().email
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time) ||
+        (('email' in request.auth.token)
+          && request.auth.token.email.lower() == emailKey
+          && existing().status == 'Active'
+          && incoming().email == existing().email
+          && incoming().name == existing().name
+          && incoming().employeeId == existing().employeeId
+          && incoming().status == existing().status
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().linkedUid == request.auth.uid
+          && incoming().diff(existing()).affectedKeys().hasOnly(['linkedUid', 'updatedAt']))
+      );
+      allow delete: if isValidEmailKey(emailKey) && isAdmin();
+    }
+
+    // 6. admins (created/managed strictly by Admin)
+    match /admins/{uid} {
+      allow get: if isValidId(uid) && isSignedIn() && (uid == request.auth.uid || isAdmin());
+      allow list: if isAdmin();
+      allow create, update: if isValidId(uid) && isAdmin() && isValidAdminDoc(incoming());
+      allow delete: if false;
+    }
+
+    // 7. categories & 8. subcategories (public read, Admin write)
+    match /categories/{categoryId} {
+      allow get: if isValidId(categoryId);
+      allow list: if existing().active == true || isAdmin();
+      allow create: if isValidId(categoryId) && isAdmin() && isValidCategory(incoming()) && incoming().createdAt == request.time;
+      allow update: if isValidId(categoryId) && isAdmin() && isValidCategory(incoming()) && incoming().createdAt == existing().createdAt;
+      allow delete: if false;
+    }
+
+    match /subcategories/{subcategoryId} {
+      allow get: if isValidId(subcategoryId);
+      allow list: if existing().active == true || isAdmin();
+      allow create, update: if isValidId(subcategoryId) && isAdmin() && isValidSubcategory(incoming());
+      allow delete: if false;
+    }
+
+    // 9. buyer_requirements (no seller read access!)
+    match /buyer_requirements/{requirementId} {
+      allow get: if isValidId(requirementId) && isSignedIn() && (existing().buyerUid == request.auth.uid || isStaff());
+      allow list: if isSignedIn() && (existing().buyerUid == request.auth.uid || isStaff());
+      allow create: if isValidId(requirementId) && isSignedIn() && isValidRequirement(incoming())
+        && incoming().id == requirementId
+        && incoming().buyerUid == request.auth.uid
+        && incoming().matchedQty == 0
+        && incoming().remainingQty == incoming().requiredQty
+        && incoming().status in ['Draft', 'Pending Approval', 'Active']
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/categories/$(incoming().categoryId));
+      allow update: if isValidId(requirementId) && isSignedIn() && isValidRequirement(incoming()) && (
+        isAdmin() ||
+        (isFacilitator()
+          && incoming().buyerUid == existing().buyerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['matchedQty', 'remainingQty', 'status', 'updatedAt'])) ||
+        (existing().buyerUid == request.auth.uid
+          && !(existing().status in ['Withdrawn', 'Rejected', 'Order Confirmed'])
+          && incoming().buyerUid == existing().buyerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().status == 'Withdrawn'
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+      );
+      allow delete: if false;
+    }
+
+    // 10. seller_listings (anonymized, no PII; active listings visible in public marketplace)
+    match /seller_listings/{listingId} {
+      allow get: if isValidId(listingId) && (existing().status in ['Active', 'Partially Allocated'] || (isSignedIn() && (existing().sellerUid == request.auth.uid || isStaff())));
+      allow list: if existing().status in ['Active', 'Partially Allocated'] || (isSignedIn() && (existing().sellerUid == request.auth.uid || isStaff()));
+      allow create: if isValidId(listingId) && isSignedIn() && isValidListing(incoming())
+        && incoming().id == listingId
+        && incoming().sellerUid == request.auth.uid
+        && incoming().allocatedQty == 0
+        && incoming().remainingQty == incoming().listedQty
+        && (
+          incoming().status in ['Draft', 'Pending Approval'] ||
+          (incoming().status == 'Active' && get(/databases/$(database)/documents/sellers/$(request.auth.uid)).data.verification == 'Verified')
+        )
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/categories/$(incoming().categoryId));
+      allow update: if isValidId(listingId) && isSignedIn() && isValidListing(incoming()) && (
+        isAdmin() ||
+        (isFacilitator()
+          && incoming().sellerUid == existing().sellerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['allocatedQty', 'remainingQty', 'status', 'updatedAt'])) ||
+        (existing().sellerUid == request.auth.uid
+          && !(existing().status in ['Withdrawn', 'Rejected', 'Allocated'])
+          && incoming().sellerUid == existing().sellerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            (incoming().status in ['Active', 'Paused', 'Withdrawn'] && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+            (incoming().diff(existing()).affectedKeys().hasOnly(['listedQty', 'remainingQty', 'askingRate', 'additionalInfo', 'updatedAt']))
+          ))
+      );
+      allow delete: if false;
+    }
+
+    // 11. matches
+    match /matches/{matchId} {
+      allow get: if isValidId(matchId) && isSignedIn() && (resource == null || existing().buyerUid == request.auth.uid || existing().sellerUid == request.auth.uid || isStaff());
+      allow list: if isSignedIn() && (existing().buyerUid == request.auth.uid || existing().sellerUid == request.auth.uid || isStaff());
+      allow create: if isValidId(matchId) && isSignedIn() && isValidMatch(incoming())
+        && incoming().id == matchId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (isStaff() || incoming().buyerUid == request.auth.uid || incoming().sellerUid == request.auth.uid)
+        && exists(/databases/$(database)/documents/buyer_requirements/$(incoming().requirementId))
+        && exists(/databases/$(database)/documents/seller_listings/$(incoming().listingId));
+      allow update: if isValidId(matchId) && isSignedIn() && isValidMatch(incoming()) && (
+        isStaff() ||
+        (existing().buyerUid == request.auth.uid
+          && incoming().buyerUid == existing().buyerUid
+          && incoming().sellerUid == existing().sellerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['buyerAgreed', 'status', 'updatedAt'])) ||
+        (existing().sellerUid == request.auth.uid
+          && incoming().buyerUid == existing().buyerUid
+          && incoming().sellerUid == existing().sellerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['sellerAgreed', 'status', 'updatedAt']))
+      );
+      allow delete: if false;
+    }
+
+    // 12. offers (facilitator/admin created; target party can respond)
+    match /offers/{offerId} {
+      allow get: if isValidId(offerId) && isSignedIn() && (existing().partyUid == request.auth.uid || isStaff());
+      allow list: if isSignedIn() && (existing().partyUid == request.auth.uid || isStaff());
+      allow create: if isValidId(offerId) && isStaff() && isValidOffer(incoming())
+        && incoming().id == offerId
+        && incoming().createdByUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/matches/$(incoming().matchId));
+      allow update: if isValidId(offerId) && isSignedIn() && isValidOffer(incoming()) && (
+        isStaff() ||
+        (existing().partyUid == request.auth.uid
+          && existing().status == 'Pending Response'
+          && incoming().status in ['Accepted', 'Rejected', 'Countered']
+          && incoming().partyUid == existing().partyUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+      );
+      allow delete: if false;
+    }
+
+    // 13. negotiations
+    match /negotiations/{negotiationId} {
+      allow get: if isValidId(negotiationId) && isSignedIn() && (
+        isStaff() ||
+        (existing().buyerUid == request.auth.uid && existing().visibleToBuyer == true) ||
+        (existing().sellerUid == request.auth.uid && existing().visibleToSeller == true)
+      );
+      allow list: if isSignedIn() && (
+        isStaff() ||
+        (existing().buyerUid == request.auth.uid && existing().visibleToBuyer == true) ||
+        (existing().sellerUid == request.auth.uid && existing().visibleToSeller == true)
+      );
+      allow create: if isValidId(negotiationId) && isSignedIn() && isValidNegotiation(incoming())
+        && incoming().id == negotiationId
+        && incoming().actorUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && exists(/databases/$(database)/documents/matches/$(incoming().matchId))
+        && (isStaff() || incoming().buyerUid == request.auth.uid || incoming().sellerUid == request.auth.uid);
+      allow update, delete: if false;
+    }
+
+    // 14. orders
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && isSignedIn() && (existing().buyerUid == request.auth.uid || existing().sellerUid == request.auth.uid || isStaff());
+      allow list: if isSignedIn() && (existing().buyerUid == request.auth.uid || existing().sellerUid == request.auth.uid || isStaff());
+      allow create: if isValidId(orderId) && isStaff() && isValidOrder(incoming())
+        && incoming().id == orderId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/matches/$(incoming().matchId));
+      allow update: if isValidId(orderId) && isSignedIn() && isValidOrder(incoming()) && (
+        isAdmin() ||
+        (isFacilitator()
+          && existing().orderStatus != 'Transaction Completed'
+          && incoming().buyerUid == existing().buyerUid
+          && incoming().sellerUid == existing().sellerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['orderStatus', 'paymentStatus', 'transferStatus', 'updatedAt']))
+      );
+      allow delete: if false;
+    }
+
+    // 15. payments
+    match /payments/{paymentId} {
+      allow get: if isValidId(paymentId) && isSignedIn() && (existing().buyerUid == request.auth.uid || existing().sellerUid == request.auth.uid || isStaff());
+      allow list: if isSignedIn() && (existing().buyerUid == request.auth.uid || existing().sellerUid == request.auth.uid || isStaff());
+      allow create: if isValidId(paymentId) && isStaff() && isValidPayment(incoming())
+        && incoming().id == paymentId
+        && incoming().createdAt == request.time
+        && exists(/databases/$(database)/documents/orders/$(incoming().orderId));
+      allow update: if isValidId(paymentId) && isAdmin() && isValidPayment(incoming());
+      allow delete: if false;
+    }
+
+    // 16. invoices
+    match /invoices/{invoiceId} {
+      allow get: if isValidId(invoiceId) && isSignedIn() && (existing().buyerUid == request.auth.uid || existing().sellerUid == request.auth.uid || isStaff());
+      allow list: if isSignedIn() && (existing().buyerUid == request.auth.uid || existing().sellerUid == request.auth.uid || isStaff());
+      allow create: if isValidId(invoiceId) && isStaff() && isValidInvoice(incoming())
+        && incoming().id == invoiceId
+        && incoming().createdAt == request.time
+        && existsAfter(/databases/$(database)/documents/orders/$(incoming().orderId));
+      allow update, delete: if false;
+    }
+
+    // 17. documents
+    match /documents/{documentId} {
+      allow get: if isValidId(documentId) && isSignedIn() && (existing().ownerUid == request.auth.uid || isStaff());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isStaff());
+      allow create: if isValidId(documentId) && isSignedIn() && isValidDocument(incoming())
+        && incoming().id == documentId
+        && incoming().ownerUid == request.auth.uid
+        && incoming().verificationStatus == 'Pending Review'
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(documentId) && isAdmin() && isValidDocument(incoming());
+      allow delete: if false;
+    }
+
+    // 18. notifications
+    match /notifications/{notificationId} {
+      allow get: if isValidId(notificationId) && isSignedIn() && (resource == null || existing().recipientUid == request.auth.uid || isStaff());
+      allow list: if isSignedIn() && (existing().recipientUid == request.auth.uid || isStaff());
+      allow create: if isValidId(notificationId) && isSignedIn() && isValidNotification(incoming())
+        && incoming().id == notificationId
+        && incoming().read == false
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(notificationId) && isSignedIn() && isValidNotification(incoming()) && (
+        isAdmin() ||
+        (existing().recipientUid == request.auth.uid
+          && incoming().recipientUid == existing().recipientUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().diff(existing()).affectedKeys().hasOnly(['read']))
+      );
+      allow delete: if false;
+    }
+
+    // 19. market_rates & 20. transactions (public read, staff/admin write on completion)
+    match /market_rates/{rateId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(rateId) && isStaff() && isValidMarketRate(incoming()) && incoming().updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    match /transactions/{transactionId} {
+      allow get, list: if true;
+      allow create: if isValidId(transactionId) && isStaff() && isValidTransaction(incoming())
+        && incoming().completedAt == request.time
+        && exists(/databases/$(database)/documents/orders/$(incoming().orderId));
+      allow update, delete: if false;
+    }
+
+    // 21. audit_logs (append-only)
+    match /audit_logs/{logId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(logId) && isSignedIn() && isValidAuditLog(incoming())
+        && incoming().actorUid == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // 22. platform_settings
+    match /platform_settings/{settingId} {
+      allow get: if isValidId(settingId);
+      allow list: if isAdmin();
+      allow create, update: if isValidId(settingId) && isAdmin() && isValidPlatformSettings(incoming()) && incoming().updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    // 23. email_delivery_logs (backend Admin SDK writes; strictly staff-only read)
+    match /email_delivery_logs/{logId} {
+      allow get, list: if isStaff();
+      allow create, update, delete: if false;
+    }
+
+    // 24. published_rates (Admin-approved & published EPR category rates for header ticker & public rate board)
+    match /published_rates/{rateId} {
+      allow get: if isValidId(rateId) && (existing().published == true || isAdmin());
+      allow list: if existing().published == true || isAdmin();
+      allow create: if isValidId(rateId) && isAdmin() && isValidPublishedRate(incoming())
+        && incoming().id == rateId
+        && incoming().updatedByUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(rateId) && isAdmin() && isValidPublishedRate(incoming())
+        && incoming().id == existing().id
+        && incoming().updatedByUid == request.auth.uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(rateId) && isAdmin();
+    }
+  }
+}
