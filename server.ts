@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
-import type { Express, Request, Response } from 'express';
+import type { Express, NextFunction, Request, Response } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -19,10 +19,23 @@ import {
   retryFailedEmailNotifications,
 } from './server/notificationService.ts';
 import type { NotificationStore } from './server/notificationService.ts';
-import { generateRobotsTxt, generateSitemapXml } from './server/seoRoutes.ts';
+import {
+  createFirestoreSeoStore,
+  generateAdminSeoSuggestion,
+  generateCategoriesSitemapFromSnapshot,
+  generatePagesSitemapFromSnapshot,
+  generateRobotsTxt,
+  generateSitemapIndexFromSnapshot,
+  injectSeoIntoHtml,
+  invalidateSeoCache,
+  loadSeoCatalogSnapshot,
+} from './server/seoRoutes.ts';
+import type { SeoDataStore } from './server/seoRoutes.ts';
+import { CANONICAL_ORIGIN } from './shared/seoEngine.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const BOOTSTRAPPED_ADMIN_EMAIL = 'ajaykumartiwari609@gmail.com';
 
 export interface VerifiedCaller {
   uid: string;
@@ -32,6 +45,7 @@ export interface VerifiedCaller {
 export interface ServerDeps {
   verifyToken?: (authHeader: string | undefined) => Promise<VerifiedCaller>;
   getStore?: () => NotificationStore;
+  getSeoStore?: () => SeoDataStore;
   getEmailSender?: () => EmailSender;
   getHealthState?: () =>
     | {
@@ -60,7 +74,7 @@ function resolveAppBaseUrl(req: Request): string {
     const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
     return `${proto}://${host}`.replace(/\/+$/, '');
   }
-  return 'https://etp.eprbazaar.com';
+  return CANONICAL_ORIGIN;
 }
 
 export function createApiApp(deps?: ServerDeps): Express {
@@ -83,20 +97,187 @@ export function createApiApp(deps?: ServerDeps): Express {
   const getSender = deps?.getEmailSender || (() => createEmailSender());
   const getHealth = deps?.getHealthState || checkFirebaseAdminHealth;
 
-  app.get('/sitemap.xml', (req: Request, res: Response) => {
-    const baseUrl = resolveAppBaseUrl(req);
-    res.status(200);
-    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.send(generateSitemapXml(baseUrl));
+  async function verifyAdminCaller(authHeader: string | undefined): Promise<VerifiedCaller> {
+    const caller = await verifyToken(authHeader);
+    if ((caller.email || '').trim().toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL) {
+      return caller;
+    }
+    if (deps?.getSeoStore) {
+      const allowed = await deps.getSeoStore().isAdminUser(caller.uid, caller.email);
+      if (allowed) return caller;
+      const err = new Error('Administrator authorization required.') as Error & { statusCode?: number };
+      err.statusCode = 403;
+      throw err;
+    }
+    try {
+      const adminState = getFirebaseAdminState();
+      if (adminState.initialized) {
+        const store = createFirestoreSeoStore(getAdminDb());
+        const allowed = await store.isAdminUser(caller.uid, caller.email);
+        if (allowed) return caller;
+      }
+    } catch {
+      // Fall through to 403 if Admin lookup cannot verify privilege
+    }
+    const err = new Error('Administrator authorization required.') as Error & { statusCode?: number };
+    err.statusCode = 403;
+    throw err;
+  }
+
+  app.get('/sitemap.xml', async (_req: Request, res: Response) => {
+    try {
+      const snapshot = await loadSeoCatalogSnapshot({
+        customStore: deps?.getSeoStore?.(),
+      });
+      res.status(200);
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=60, must-revalidate');
+      res.send(generateSitemapIndexFromSnapshot(snapshot, CANONICAL_ORIGIN));
+    } catch (err) {
+      res.status(500).type('text/plain').send(err instanceof Error ? err.message : 'Unable to render sitemap.');
+    }
   });
 
-  app.get('/robots.txt', (req: Request, res: Response) => {
-    const baseUrl = resolveAppBaseUrl(req);
+  app.get('/sitemap-pages.xml', async (_req: Request, res: Response) => {
+    try {
+      const snapshot = await loadSeoCatalogSnapshot({
+        customStore: deps?.getSeoStore?.(),
+      });
+      res.status(200);
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=60, must-revalidate');
+      res.send(generatePagesSitemapFromSnapshot(snapshot, CANONICAL_ORIGIN));
+    } catch (err) {
+      res.status(500).type('text/plain').send(err instanceof Error ? err.message : 'Unable to render pages sitemap.');
+    }
+  });
+
+  app.get('/sitemap-categories.xml', async (_req: Request, res: Response) => {
+    try {
+      const snapshot = await loadSeoCatalogSnapshot({
+        customStore: deps?.getSeoStore?.(),
+      });
+      res.status(200);
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=60, must-revalidate');
+      res.send(generateCategoriesSitemapFromSnapshot(snapshot, CANONICAL_ORIGIN));
+    } catch (err) {
+      res
+        .status(500)
+        .type('text/plain')
+        .send(err instanceof Error ? err.message : 'Unable to render categories sitemap.');
+    }
+  });
+
+  app.get('/robots.txt', (_req: Request, res: Response) => {
     res.status(200);
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.send(generateRobotsTxt(baseUrl));
+    res.send(generateRobotsTxt(CANONICAL_ORIGIN));
+  });
+
+  app.get('/api/seo/summary', async (_req: Request, res: Response) => {
+    try {
+      const snapshot = await loadSeoCatalogSnapshot({
+        customStore: deps?.getSeoStore?.(),
+      });
+      res.status(200).json({
+        ok: true,
+        audit: snapshot.audit,
+        lastUpdatedIso: snapshot.lastUpdatedIso,
+        source: snapshot.source,
+        sitemapUrl: `${CANONICAL_ORIGIN}/sitemap.xml`,
+      });
+    } catch (err) {
+      res.status(500).json({
+        ok: false,
+        error: err instanceof Error ? err.message : 'Unable to load SEO summary.',
+      });
+    }
+  });
+
+  app.post('/api/seo/regenerate', async (req: Request, res: Response) => {
+    try {
+      const caller = await verifyAdminCaller(req.headers.authorization);
+      invalidateSeoCache();
+      const customStore = deps?.getSeoStore?.();
+      const snapshot = await loadSeoCatalogSnapshot({
+        customStore,
+        forceRefresh: true,
+      });
+
+      if (customStore?.recordRegeneration) {
+        await customStore.recordRegeneration({
+          actorUid: caller.uid,
+          actorEmail: caller.email || '',
+          totalUrls: snapshot.audit.totalUrlsInSitemap,
+          status: snapshot.audit.sitemapStatus,
+        });
+      } else if (getFirebaseAdminState().initialized) {
+        try {
+          const store = createFirestoreSeoStore(getAdminDb());
+          if (store.recordRegeneration) {
+            await store.recordRegeneration({
+              actorUid: caller.uid,
+              actorEmail: caller.email || '',
+              totalUrls: snapshot.audit.totalUrlsInSitemap,
+              status: snapshot.audit.sitemapStatus,
+            });
+          }
+        } catch {
+          // Client-side Admin SDK records seo_settings/seo_logs directly when backend IAM SA is absent
+        }
+      }
+
+      res.status(200).json({
+        ok: true,
+        audit: snapshot.audit,
+        lastUpdatedIso: new Date().toISOString(),
+        source: snapshot.source,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unable to regenerate sitemap.';
+      const statusCode = (err as Error & { statusCode?: number }).statusCode || 500;
+      res.status(statusCode).json({ ok: false, error: msg });
+    }
+  });
+
+  app.post('/api/seo/suggest', async (req: Request, res: Response) => {
+    try {
+      await verifyAdminCaller(req.headers.authorization);
+      const body = (req.body || {}) as {
+        pageTitle?: unknown;
+        slug?: unknown;
+        contentSummary?: unknown;
+        existingTitles?: unknown;
+      };
+      const pageTitle = typeof body.pageTitle === 'string' ? body.pageTitle.trim() : '';
+      const slug = typeof body.slug === 'string' ? body.slug.trim() : '/';
+      const contentSummary = typeof body.contentSummary === 'string' ? body.contentSummary.trim() : '';
+      const existingTitles = Array.isArray(body.existingTitles)
+        ? body.existingTitles.filter((t): t is string => typeof t === 'string')
+        : [];
+
+      if (!pageTitle) {
+        res.status(400).json({ ok: false, error: 'pageTitle is required to generate SEO suggestions.' });
+        return;
+      }
+
+      const suggestion = await generateAdminSeoSuggestion({
+        pageTitle,
+        slug,
+        contentSummary,
+        existingTitles,
+      });
+      res.status(200).json({
+        ok: true,
+        ...suggestion,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unable to generate SEO suggestion.';
+      const statusCode = (err as Error & { statusCode?: number }).statusCode || 500;
+      res.status(statusCode).json({ ok: false, error: msg });
+    }
   });
 
   app.get('/api/health', async (_req: Request, res: Response) => {
@@ -223,20 +404,47 @@ async function startServer() {
         middlewareMode: true,
         hmr: process.env.DISABLE_HMR !== 'true',
       },
-      appType: 'spa',
+      appType: 'custom',
     });
     app.use(vite.middlewares);
-  } else {
-    const distDir = path.resolve(__dirname, 'dist');
-    const indexHtml = path.join(distDir, 'index.html');
-    app.use(express.static(distDir));
-    app.get('*', (req: Request, res: Response) => {
+
+    app.get('*', async (req: Request, res: Response, next: NextFunction) => {
       if (req.path.startsWith('/api/')) {
         res.status(404).json({ ok: false, error: 'API route not found.' });
         return;
       }
-      if (fs.existsSync(indexHtml)) {
-        res.sendFile(indexHtml);
+      if (path.extname(req.path)) {
+        next();
+        return;
+      }
+      try {
+        const indexPath = path.resolve(__dirname, 'index.html');
+        const rawTemplate = fs.readFileSync(indexPath, 'utf8');
+        const transformed = await vite.transformIndexHtml(req.originalUrl, rawTemplate);
+        const snapshot = await loadSeoCatalogSnapshot();
+        const html = injectSeoIntoHtml(transformed, req.path, snapshot);
+        res.status(200).setHeader('Content-Type', 'text/html; charset=utf-8').end(html);
+      } catch (err) {
+        if (err instanceof Error) {
+          vite.ssrFixStacktrace(err);
+        }
+        next(err);
+      }
+    });
+  } else {
+    const distDir = path.resolve(__dirname, 'dist');
+    const indexHtmlPath = path.join(distDir, 'index.html');
+    app.use(express.static(distDir, { index: false }));
+    app.get('*', async (req: Request, res: Response) => {
+      if (req.path.startsWith('/api/')) {
+        res.status(404).json({ ok: false, error: 'API route not found.' });
+        return;
+      }
+      if (fs.existsSync(indexHtmlPath)) {
+        const rawHtml = fs.readFileSync(indexHtmlPath, 'utf8');
+        const snapshot = await loadSeoCatalogSnapshot();
+        const html = injectSeoIntoHtml(rawHtml, req.path, snapshot);
+        res.status(200).setHeader('Content-Type', 'text/html; charset=utf-8').end(html);
       } else {
         res.status(503).send('Production bundle not built yet. Run npm run build.');
       }
@@ -253,7 +461,7 @@ async function startServer() {
       const appBaseUrl =
         process.env.APP_URL && process.env.APP_URL !== 'MY_APP_URL'
           ? process.env.APP_URL.replace(/\/+$/, '')
-          : 'https://etp.eprbazaar.com';
+          : CANONICAL_ORIGIN;
       await retryFailedEmailNotifications(store, sender, {
         systemBypassAuth: true,
         appBaseUrl,

@@ -525,6 +525,66 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "categoryId", "categoryName", "financialYear", "unit", "rate", "published", "updatedByUid", "createdAt", "updatedAt"]
+    },
+    "SeoPage": {
+      "title": "SeoPage",
+      "description": "Published or draft public page SEO metadata, canonical URL, and Open Graph definition.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "slug": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "pageType": { "type": "string", "enum": ["core", "legal", "custom"] },
+        "pageTitle": { "type": "string", "minLength": 2, "maxLength": 140 },
+        "contentSummary": { "type": "string", "minLength": 10, "maxLength": 1500 },
+        "seoTitle": { "type": "string", "maxLength": 120 },
+        "metaDescription": { "type": "string", "maxLength": 320 },
+        "canonicalUrl": { "type": "string", "maxLength": 260 },
+        "robots": { "type": "string", "enum": ["index, follow", "noindex, nofollow"] },
+        "ogTitle": { "type": "string", "maxLength": 120 },
+        "ogDescription": { "type": "string", "maxLength": 320 },
+        "ogImage": { "type": "string", "maxLength": 400 },
+        "twitterCard": { "type": "string", "enum": ["summary_large_image", "summary"] },
+        "published": { "type": "boolean" },
+        "isSystemPage": { "type": "boolean" },
+        "aiDraftSeoTitle": { "type": "string", "maxLength": 120 },
+        "aiDraftMetaDescription": { "type": "string", "maxLength": 320 },
+        "aiDraftApproved": { "type": "boolean" },
+        "updatedByUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "slug", "pageType", "pageTitle", "contentSummary", "seoTitle", "metaDescription", "canonicalUrl", "robots", "ogTitle", "ogDescription", "ogImage", "twitterCard", "published", "isSystemPage", "updatedByUid", "createdAt", "updatedAt"]
+    },
+    "SeoSettings": {
+      "title": "SeoSettings",
+      "description": "Sitemap status, canonical domain configuration, and last regeneration metadata.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "canonicalDomain": { "type": "string", "maxLength": 120 },
+        "sitemapStatus": { "type": "string", "enum": ["Healthy", "Needs Attention"] },
+        "totalUrls": { "type": "number" },
+        "lastRegeneratedByUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lastRegeneratedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "canonicalDomain", "sitemapStatus", "totalUrls", "lastRegeneratedByUid", "lastRegeneratedAt", "updatedAt"]
+    },
+    "SeoChangeLog": {
+      "title": "SeoChangeLog",
+      "description": "Immutable log of SEO metadata updates, page publish state changes, and sitemap regenerations.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "action": { "type": "string", "enum": ["Seeded", "Published", "Edited", "Unpublished", "Deleted", "Sitemap Regenerated", "Draft Generated"] },
+        "pageId": { "type": "string", "maxLength": 128 },
+        "slug": { "type": "string", "maxLength": 180 },
+        "details": { "type": "string", "maxLength": 500 },
+        "actorUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "actorEmail": { "type": "string", "maxLength": 160 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "action", "pageId", "slug", "details", "actorUid", "actorEmail", "createdAt"]
     }
   },
   "firestore": {
@@ -552,6 +612,9 @@
     "/published_rates/{rateId}": { "schema": { "$ref": "#/entities/PublishedEprRate" }, "description": "Admin-approved published EPR category rates for ticker and rate board." },
     "/transactions/{transactionId}": { "schema": { "$ref": "#/entities/TransactionRecord" }, "description": "Completed transactions for Last Traded Rate." },
     "/audit_logs/{logId}": { "schema": { "$ref": "#/entities/AuditLog" }, "description": "Security and operations audit log." },
-    "/platform_settings/{settingId}": { "schema": { "$ref": "#/entities/PlatformSettings" }, "description": "Global platform configuration." }
+    "/platform_settings/{settingId}": { "schema": { "$ref": "#/entities/PlatformSettings" }, "description": "Global platform configuration." },
+    "/seo_pages/{pageId}": { "schema": { "$ref": "#/entities/SeoPage" }, "description": "SEO metadata and publish state for public pages." },
+    "/seo_settings/{settingId}": { "schema": { "$ref": "#/entities/SeoSettings" }, "description": "Global SEO sitemap status and canonical domain settings." },
+    "/seo_logs/{logId}": { "schema": { "$ref": "#/entities/SeoChangeLog" }, "description": "SEO metadata and sitemap change logs." }
   }
 }

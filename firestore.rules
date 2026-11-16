@@ -470,6 +470,57 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidSeoPage(data) {
+      return data.keys().hasAll(['id', 'slug', 'pageType', 'pageTitle', 'contentSummary', 'seoTitle', 'metaDescription', 'canonicalUrl', 'robots', 'ogTitle', 'ogDescription', 'ogImage', 'twitterCard', 'published', 'isSystemPage', 'updatedByUid', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'slug', 'pageType', 'pageTitle', 'contentSummary', 'seoTitle', 'metaDescription', 'canonicalUrl', 'robots', 'ogTitle', 'ogDescription', 'ogImage', 'twitterCard', 'published', 'isSystemPage', 'aiDraftSeoTitle', 'aiDraftMetaDescription', 'aiDraftApproved', 'updatedByUid', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && data.slug is string && data.slug.size() >= 1 && data.slug.size() <= 180
+        && data.pageType in ['core', 'legal', 'custom']
+        && data.pageTitle is string && data.pageTitle.size() >= 2 && data.pageTitle.size() <= 140
+        && data.contentSummary is string && data.contentSummary.size() >= 10 && data.contentSummary.size() <= 1500
+        && data.seoTitle is string && data.seoTitle.size() <= 120
+        && data.metaDescription is string && data.metaDescription.size() <= 320
+        && data.canonicalUrl is string && data.canonicalUrl.size() <= 260
+        && data.robots in ['index, follow', 'noindex, nofollow']
+        && data.ogTitle is string && data.ogTitle.size() <= 120
+        && data.ogDescription is string && data.ogDescription.size() <= 320
+        && data.ogImage is string && data.ogImage.size() <= 400
+        && data.twitterCard in ['summary_large_image', 'summary']
+        && data.published is bool
+        && data.isSystemPage is bool
+        && (!('aiDraftSeoTitle' in data) || (data.aiDraftSeoTitle is string && data.aiDraftSeoTitle.size() <= 120))
+        && (!('aiDraftMetaDescription' in data) || (data.aiDraftMetaDescription is string && data.aiDraftMetaDescription.size() <= 320))
+        && (!('aiDraftApproved' in data) || data.aiDraftApproved is bool)
+        && isValidId(data.updatedByUid)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSeoSettings(data) {
+      return data.keys().hasAll(['id', 'canonicalDomain', 'sitemapStatus', 'totalUrls', 'lastRegeneratedByUid', 'lastRegeneratedAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'canonicalDomain', 'sitemapStatus', 'totalUrls', 'lastRegeneratedByUid', 'lastRegeneratedAt', 'updatedAt'])
+        && isValidId(data.id)
+        && data.canonicalDomain is string && data.canonicalDomain.size() >= 8 && data.canonicalDomain.size() <= 120
+        && data.sitemapStatus in ['Healthy', 'Needs Attention']
+        && data.totalUrls is number && data.totalUrls >= 0
+        && isValidId(data.lastRegeneratedByUid)
+        && data.lastRegeneratedAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSeoLog(data) {
+      return data.keys().hasAll(['id', 'action', 'pageId', 'slug', 'details', 'actorUid', 'actorEmail', 'createdAt'])
+        && data.keys().hasOnly(['id', 'action', 'pageId', 'slug', 'details', 'actorUid', 'actorEmail', 'createdAt'])
+        && isValidId(data.id)
+        && data.action in ['Seeded', 'Published', 'Edited', 'Unpublished', 'Deleted', 'Sitemap Regenerated', 'Draft Generated']
+        && data.pageId is string && data.pageId.size() <= 128
+        && data.slug is string && data.slug.size() <= 180
+        && data.details is string && data.details.size() <= 500
+        && isValidId(data.actorUid)
+        && data.actorEmail is string && data.actorEmail.size() <= 160
+        && data.createdAt is timestamp;
+    }
+
     // 1. users (strict RBAC: users can only self-register as buyer or seller)
     match /users/{uid} {
       allow get: if isValidId(uid) && isSignedIn() && (uid == request.auth.uid || isStaff());
@@ -898,6 +949,44 @@ service cloud.firestore {
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time;
       allow delete: if isValidId(rateId) && isAdmin();
+    }
+
+    // 25. seo_pages (public read for published pages; Admin full lifecycle management)
+    match /seo_pages/{pageId} {
+      allow get: if isValidId(pageId) && (existing().published == true || isAdmin());
+      allow list: if existing().published == true || isAdmin();
+      allow create: if isValidId(pageId) && isAdmin() && isValidSeoPage(incoming())
+        && incoming().id == pageId
+        && incoming().updatedByUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(pageId) && isAdmin() && isValidSeoPage(incoming())
+        && incoming().id == existing().id
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedByUid == request.auth.uid
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(pageId) && isAdmin() && existing().isSystemPage == false;
+    }
+
+    // 26. seo_settings (public read for sitemap metadata; Admin write)
+    match /seo_settings/{settingId} {
+      allow get: if isValidId(settingId);
+      allow list: if isAdmin();
+      allow create, update: if isValidId(settingId) && isAdmin() && isValidSeoSettings(incoming())
+        && incoming().id == settingId
+        && incoming().lastRegeneratedByUid == request.auth.uid
+        && incoming().updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    // 27. seo_logs (immutable Admin SEO audit history)
+    match /seo_logs/{logId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(logId) && isAdmin() && isValidSeoLog(incoming())
+        && incoming().id == logId
+        && incoming().actorUid == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update, delete: if false;
     }
   }
 }

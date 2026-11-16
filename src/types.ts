@@ -24,7 +24,8 @@ export type PublicPage =
   | 'login-error'
   | 'access-denied'
   | 'profile-completion'
-  | 'password-reset';
+  | 'password-reset'
+  | 'custom-page';
 
 export type BuyerTab =
   | 'overview'
@@ -99,6 +100,7 @@ export type AdminTab =
   | 'reports'
   | 'audit-logs'
   | 'notifications'
+  | 'seo'
   | 'settings'
   | 'permissions';
 
@@ -557,6 +559,58 @@ export interface PlatformSettingsRecord {
   gstPercent: number;
   matchingRateTolerancePercent: number;
   updatedAt?: FirestoreTime;
+}
+
+export interface SeoPageRecord {
+  id: string;
+  slug: string;
+  pageType: 'core' | 'legal' | 'custom';
+  pageTitle: string;
+  contentSummary: string;
+  seoTitle: string;
+  metaDescription: string;
+  canonicalUrl: string;
+  robots: 'index, follow' | 'noindex, nofollow';
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+  twitterCard: 'summary_large_image' | 'summary';
+  published: boolean;
+  isSystemPage: boolean;
+  aiDraftSeoTitle?: string;
+  aiDraftMetaDescription?: string;
+  aiDraftApproved?: boolean;
+  updatedByUid: string;
+  createdAt?: FirestoreTime;
+  updatedAt?: FirestoreTime;
+}
+
+export interface SeoSettingsRecord {
+  id: string;
+  canonicalDomain: string;
+  sitemapStatus: 'Healthy' | 'Needs Attention';
+  totalUrls: number;
+  lastRegeneratedByUid: string;
+  lastRegeneratedAt?: FirestoreTime;
+  updatedAt?: FirestoreTime;
+}
+
+export interface SeoChangeLog {
+  id: string;
+  action:
+    | 'Seeded'
+    | 'Published'
+    | 'Edited'
+    | 'Unpublished'
+    | 'Deleted'
+    | 'Sitemap Regenerated'
+    | 'Draft Generated';
+  pageId: string;
+  slug: string;
+  details: string;
+  actorUid: string;
+  actorEmail: string;
+  createdAt?: FirestoreTime;
 }
 
 export interface ToastMessage {

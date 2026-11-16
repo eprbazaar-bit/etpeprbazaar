@@ -960,7 +960,7 @@ describe('Two-Way Category-Based Buyer & Seller Email Notification System', () =
     }
   });
 
-  it('Test J: GET /sitemap.xml and /robots.txt return valid XML/plain-text SEO responses', async () => {
+  it('Test J: GET /sitemap.xml, /sitemap-pages.xml, and /robots.txt return valid XML/plain-text SEO responses', async () => {
     const { store } = createMemoryNotificationStore({});
     const app = createApiApp({
       verifyToken: async () => ({ uid: 'u1', email: 'u1@example.com' }),
@@ -985,16 +985,25 @@ describe('Two-Way Category-Based Buyer & Seller Email Notification System', () =
       assert.ok((sitemapRes.headers.get('content-type') || '').includes('application/xml'));
       const sitemapXml = await sitemapRes.text();
       assert.ok(sitemapXml.startsWith('<?xml version="1.0" encoding="UTF-8"?>'));
-      assert.ok(sitemapXml.includes('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'));
-      assert.ok(sitemapXml.includes('/marketplace</loc>'));
-      assert.ok(sitemapXml.includes('/market-rates</loc>'));
-      assert.ok(sitemapXml.includes('/login</loc>'));
+      assert.ok(sitemapXml.includes('<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'));
+      assert.ok(sitemapXml.includes('/sitemap-pages.xml</loc>'));
+
+      const pagesRes = await fetch(`${baseUrl}/sitemap-pages.xml`);
+      assert.equal(pagesRes.status, 200);
+      assert.ok((pagesRes.headers.get('content-type') || '').includes('application/xml'));
+      const pagesXml = await pagesRes.text();
+      assert.ok(pagesXml.includes('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'));
+      assert.ok(pagesXml.includes('/marketplace</loc>'));
+      assert.ok(pagesXml.includes('/market-rates</loc>'));
+      assert.equal(pagesXml.includes('/login</loc>'), false);
 
       const robotsRes = await fetch(`${baseUrl}/robots.txt`);
       assert.equal(robotsRes.status, 200);
       assert.ok((robotsRes.headers.get('content-type') || '').includes('text/plain'));
       const robotsTxt = await robotsRes.text();
       assert.ok(robotsTxt.includes('User-agent: *'));
+      assert.ok(robotsTxt.includes('Disallow: /admin'));
+      assert.ok(robotsTxt.includes('Disallow: /login'));
       assert.ok(robotsTxt.includes('Sitemap:'));
       assert.ok(robotsTxt.includes('/sitemap.xml'));
     } finally {

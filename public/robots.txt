@@ -1,5 +1,21 @@
 User-agent: *
 Allow: /
+Allow: /assets/
 Disallow: /api/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /buyer
+Disallow: /buyer/
+Disallow: /seller
+Disallow: /seller/
+Disallow: /facilitator
+Disallow: /facilitator/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /login
+Disallow: /login-error
+Disallow: /access-denied
+Disallow: /profile-completion
+Disallow: /password-reset
 
 Sitemap: https://etp.eprbazaar.com/sitemap.xml

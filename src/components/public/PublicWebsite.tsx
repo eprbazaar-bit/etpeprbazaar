@@ -26,11 +26,13 @@ export const PublicWebsite: React.FC<{ children?: React.ReactNode }> = ({ childr
     connectionError,
     permissionError,
     publicPage,
+    activeCustomSlug,
     selectedCategoryId,
     categories,
     subcategories,
     publishedRates,
     publicListings,
+    seoPages,
     navigatePublic,
     addToast,
   } = useMarketplace();
@@ -1120,6 +1122,63 @@ export const PublicWebsite: React.FC<{ children?: React.ReactNode }> = ({ childr
                 )}
               </div>
             ))}
+          </section>
+        ) : publicPage === 'custom-page' ? (
+          <section className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
+            {(() => {
+              const matchedCustom = seoPages.find(
+                (p) => p.published && p.slug.toLowerCase() === (activeCustomSlug || '').toLowerCase()
+              );
+              if (!matchedCustom) {
+                return (
+                  <div className="bg-white border border-[#E2E8F0] rounded-lg p-8 text-center space-y-4">
+                    <div className="font-mono text-xs uppercase tracking-wider text-[#64748B]">Page Unavailable</div>
+                    <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#0A172A]">
+                      The requested page could not be found
+                    </h1>
+                    <p className="text-sm text-[#475569] max-w-lg mx-auto">
+                      This address may have been unpublished or moved. Return to the main EPR Bazaar marketplace to browse verified EPR credit categories and live rates.
+                    </p>
+                    <div className="pt-2 flex flex-wrap justify-center gap-3">
+                      <Button variant="primary" onClick={() => navigatePublic('home')}>
+                        Return to Homepage
+                      </Button>
+                      <Button variant="secondary" onClick={() => navigatePublic('marketplace')}>
+                        Explore Marketplace
+                      </Button>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <article className="bg-white border border-[#E2E8F0] rounded-lg p-8 space-y-6">
+                  <div className="border-b border-[#E2E8F0] pb-4 space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-[0.06em] text-[#16A36A]">
+                      ETP – EPR Bazaar Resource
+                    </div>
+                    <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#0A172A]">
+                      {matchedCustom.pageTitle}
+                    </h1>
+                    {matchedCustom.updatedAt && (
+                      <div className="font-mono text-xs text-[#64748B]">
+                        Updated {formatTime(matchedCustom.updatedAt)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-sm sm:text-base text-[#334155] leading-relaxed whitespace-pre-line">
+                    {matchedCustom.contentSummary}
+                  </div>
+                  <div className="pt-4 border-t border-[#E2E8F0] flex flex-wrap gap-3">
+                    <Button variant="primary" onClick={() => navigatePublic('marketplace')}>
+                      Explore Marketplace
+                    </Button>
+                    <Button variant="emerald" onClick={() => navigatePublic('login')}>
+                      Login / Register
+                    </Button>
+                  </div>
+                </article>
+              );
+            })()}
           </section>
         ) : (
           <section className="max-w-4xl mx-auto px-4 sm:px-6 py-12">

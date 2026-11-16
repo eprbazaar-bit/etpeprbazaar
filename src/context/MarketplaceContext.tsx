@@ -59,6 +59,9 @@ import {
   SellerAccount,
   SellerListing,
   SellerTab,
+  SeoChangeLog,
+  SeoPageRecord,
+  SeoSettingsRecord,
   ToastMessage,
   TransactionRecord,
   UserRecord,
@@ -85,6 +88,19 @@ import {
   uploadProtectedDocument,
   writeAuditLog,
 } from '../services/firestoreService';
+import {
+  deleteSeoPageDoc,
+  regenerateSitemapApi,
+  requestSeoSuggestionApi,
+  saveSeoPageDoc,
+  seedInitialSeoPagesIfEmpty,
+  syncSeoSettingsSummaryDoc,
+  toggleSeoPagePublishDoc,
+  toSeoPageInput,
+  writeSeoLogDoc,
+} from '../services/seoService';
+import { applyResolvedSeoToDocument } from '../seo/headManager';
+import { auditSeoPages, normalizeSlug, resolveMetadataForPath } from '../../shared/seoEngine';
 
 const BOOTSTRAPPED_ADMIN_EMAIL = 'ajaykumartiwari609@gmail.com';
 
@@ -99,6 +115,7 @@ interface MarketplaceContextValue {
   pendingOnboardingRole: 'buyer' | 'seller' | null;
   role: UserRole;
   publicPage: PublicPage;
+  activeCustomSlug: string;
   selectedCategoryId: string;
   buyerTab: BuyerTab;
   sellerTab: SellerTab;
@@ -137,8 +154,11 @@ interface MarketplaceContextValue {
   emailDeliveryLogs: EmailDeliveryLog[];
   auditLogs: AuditLogEntry[];
   platformSettings: PlatformSettingsRecord;
+  seoPages: SeoPageRecord[];
+  seoSettings: SeoSettingsRecord | null;
+  seoLogs: SeoChangeLog[];
   toasts: ToastMessage[];
-  navigatePublic: (page: PublicPage, categoryId?: string) => void;
+  navigatePublic: (page: PublicPage, categoryId?: string, customSlug?: string) => void;
   setBuyerTab: (tab: BuyerTab, id?: string) => void;
   setSellerTab: (tab: SellerTab, id?: string) => void;
   setFacilitatorTab: (tab: FacilitatorTab, id?: string) => void;
@@ -272,6 +292,41 @@ interface MarketplaceContextValue {
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
   retryFailedEmails: (notificationId?: string) => Promise<void>;
+  adminSeedSeoPages: (forceSyncMissing?: boolean) => Promise<void>;
+  adminSaveSeoPage: (params: {
+    id?: string;
+    slug: string;
+    pageType: 'core' | 'legal' | 'custom';
+    pageTitle: string;
+    contentSummary: string;
+    seoTitle?: string;
+    metaDescription?: string;
+    canonicalUrl?: string;
+    robots?: 'index, follow' | 'noindex, nofollow';
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
+    twitterCard?: 'summary_large_image' | 'summary';
+    published: boolean;
+    isSystemPage?: boolean;
+    aiDraftSeoTitle?: string;
+    aiDraftMetaDescription?: string;
+    aiDraftApproved?: boolean;
+  }) => Promise<void>;
+  adminToggleSeoPagePublish: (page: SeoPageRecord) => Promise<void>;
+  adminDeleteSeoPage: (page: SeoPageRecord) => Promise<void>;
+  adminRegenerateSitemap: () => Promise<void>;
+  adminRequestSeoSuggestion: (input: {
+    pageTitle: string;
+    slug: string;
+    contentSummary: string;
+    existingTitles: string[];
+  }) => Promise<{
+    aiDraftSeoTitle?: string;
+    aiDraftMetaDescription?: string;
+    usedAi?: boolean;
+    error?: string;
+  }>;
 }
 
 const MarketplaceContext = createContext<MarketplaceContextValue | null>(null);
@@ -308,39 +363,30 @@ const PUBLIC_PAGE_SLUGS: PublicPage[] = [
   'password-reset',
 ];
 
-const PUBLIC_PAGE_TITLES: Partial<Record<PublicPage, string>> = {
-  home: 'ETP – EPR Bazaar | India’s B2B EPR Credit Trading Marketplace',
-  marketplace: 'EPR Marketplace | ETP – EPR Bazaar',
-  'market-rates': 'Published EPR Market Rates | ETP – EPR Bazaar',
-  'category-details': 'EPR Category Details | ETP – EPR Bazaar',
-  'how-it-works': 'How It Works | ETP – EPR Bazaar',
-  'buy-credits': 'Buy EPR Credits | ETP – EPR Bazaar',
-  'sell-credits': 'Sell EPR Credits | ETP – EPR Bazaar',
-  about: 'About Us | ETP – EPR Bazaar',
-  contact: 'Contact Us | ETP – EPR Bazaar',
-  faq: 'Frequently Asked Questions | ETP – EPR Bazaar',
-  terms: 'Terms and Conditions | ETP – EPR Bazaar',
-  privacy: 'Privacy Policy | ETP – EPR Bazaar',
-  refund: 'Refund and Cancellation Policy | ETP – EPR Bazaar',
-  disclaimer: 'Platform Disclaimer | ETP – EPR Bazaar',
-  'buyer-guidelines': 'Buyer Guidelines | ETP – EPR Bazaar',
-  'seller-guidelines': 'Seller Guidelines | ETP – EPR Bazaar',
-  grievance: 'Grievance Redressal | ETP – EPR Bazaar',
-  login: 'Portal Sign In | ETP – EPR Bazaar',
-};
-
-function resolvePublicPageFromLocation(): PublicPage {
-  if (typeof window === 'undefined') return 'home';
+function resolveRouteFromLocation(): {
+  page: PublicPage;
+  categoryId?: string;
+  customSlug: string;
+} {
+  if (typeof window === 'undefined') return { page: 'home', customSlug: '/' };
   const params = new URLSearchParams(window.location.search);
   const queryPage = params.get('page') as PublicPage | null;
   if (queryPage && PUBLIC_PAGE_SLUGS.includes(queryPage)) {
-    return queryPage;
+    return { page: queryPage, customSlug: queryPage === 'home' ? '/' : `/${queryPage}` };
   }
-  const pathSlug = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase() as PublicPage;
-  if (pathSlug && PUBLIC_PAGE_SLUGS.includes(pathSlug)) {
-    return pathSlug;
+  const cleanPathname = normalizeSlug(window.location.pathname);
+  if (cleanPathname === '/') {
+    return { page: 'home', customSlug: '/' };
   }
-  return 'home';
+  if (cleanPathname.startsWith('/category/')) {
+    const catId = decodeURIComponent(cleanPathname.slice('/category/'.length));
+    return { page: 'category-details', categoryId: catId, customSlug: cleanPathname };
+  }
+  const rawSlug = cleanPathname.replace(/^\//, '') as PublicPage;
+  if (PUBLIC_PAGE_SLUGS.includes(rawSlug)) {
+    return { page: rawSlug, customSlug: cleanPathname };
+  }
+  return { page: 'custom-page', customSlug: cleanPathname };
 }
 
 export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -358,11 +404,13 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const initialSearchParams =
     typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const initialListingParam = initialSearchParams?.get('listing') || null;
+  const initialRoute = resolveRouteFromLocation();
 
   const [role, setRole] = useState<UserRole>('public');
-  const [publicPage, setPublicPage] = useState<PublicPage>(() => resolvePublicPageFromLocation());
+  const [publicPage, setPublicPage] = useState<PublicPage>(() => initialRoute.page);
+  const [activeCustomSlug, setActiveCustomSlug] = useState<string>(() => initialRoute.customSlug);
   const [pendingListingDeepLink, setPendingListingDeepLink] = useState<string | null>(initialListingParam);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(() => initialRoute.categoryId || '');
   const [buyerTab, setBuyerTabState] = useState<BuyerTab>('overview');
   const [sellerTab, setSellerTabState] = useState<SellerTab>('overview');
   const [facilitatorTab, setFacilitatorTabState] = useState<FacilitatorTab>('overview');
@@ -403,6 +451,9 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [emailDeliveryLogs, setEmailDeliveryLogs] = useState<EmailDeliveryLog[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [platformSettings, setPlatformSettings] = useState<PlatformSettingsRecord>(DEFAULT_SETTINGS);
+  const [seoPages, setSeoPages] = useState<SeoPageRecord[]>([]);
+  const [seoSettings, setSeoSettings] = useState<SeoSettingsRecord | null>(null);
+  const [seoLogs, setSeoLogs] = useState<SeoChangeLog[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const addToast = (toast: Omit<ToastMessage, 'id'>) => {
@@ -417,16 +468,24 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const navigatePublic = (page: PublicPage, categoryId?: string) => {
+  const navigatePublic = (page: PublicPage, categoryId?: string, customSlug?: string) => {
     if (role !== 'public' && page !== 'login') {
       setRole('public');
     }
     setPublicPage(page);
     if (categoryId) setSelectedCategoryId(categoryId);
+
+    let nextPath = page === 'home' ? '/' : `/${page}`;
+    if (page === 'category-details' && (categoryId || selectedCategoryId)) {
+      nextPath = `/category/${encodeURIComponent(categoryId || selectedCategoryId)}`;
+    } else if (page === 'custom-page' && customSlug) {
+      nextPath = normalizeSlug(customSlug);
+    }
+    setActiveCustomSlug(nextPath);
+
     if (typeof window !== 'undefined') {
-      const nextPath = page === 'home' ? '/' : `/${page}`;
       if (window.location.pathname !== nextPath || window.location.search) {
-        window.history.pushState({ publicPage: page }, '', nextPath);
+        window.history.pushState({ publicPage: page, categoryId, customSlug: nextPath }, '', nextPath);
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -435,7 +494,10 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handlePopState = () => {
-      setPublicPage(resolvePublicPageFromLocation());
+      const next = resolveRouteFromLocation();
+      setPublicPage(next.page);
+      setActiveCustomSlug(next.customSlug);
+      if (next.categoryId) setSelectedCategoryId(next.categoryId);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -443,19 +505,35 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    if (role === 'public') {
-      document.title =
-        PUBLIC_PAGE_TITLES[publicPage] || 'ETP – EPR Bazaar | India’s B2B EPR Credit Trading Marketplace';
-    } else if (role === 'buyer') {
-      document.title = 'Buyer Portal | ETP – EPR Bazaar';
-    } else if (role === 'seller') {
-      document.title = 'Seller Portal | ETP – EPR Bazaar';
-    } else if (role === 'facilitator') {
-      document.title = 'Facilitator Operations | ETP – EPR Bazaar';
-    } else if (role === 'admin') {
-      document.title = 'Super Admin Portal | ETP – EPR Bazaar';
+    let routePath = '/';
+    if (role === 'buyer') routePath = '/buyer';
+    else if (role === 'seller') routePath = '/seller';
+    else if (role === 'facilitator') routePath = '/facilitator';
+    else if (role === 'admin') routePath = '/admin';
+    else if (publicPage === 'home') routePath = '/';
+    else if (publicPage === 'category-details' && selectedCategoryId) {
+      routePath = `/category/${encodeURIComponent(selectedCategoryId)}`;
+    } else if (publicPage === 'custom-page') {
+      routePath = activeCustomSlug || '/';
+    } else {
+      routePath = `/${publicPage}`;
     }
-  }, [publicPage, role]);
+
+    const resolved = resolveMetadataForPath(
+      routePath,
+      seoPages.map(toSeoPageInput),
+      categories.map((c) => ({
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        shortName: c.shortName,
+        description: c.description,
+        unit: c.unit,
+        active: c.active,
+      }))
+    );
+    applyResolvedSeoToDocument(resolved);
+  }, [publicPage, activeCustomSlug, selectedCategoryId, role, seoPages, categories]);
 
   const setBuyerTab = (tab: BuyerTab, id?: string) => {
     setBuyerTabState(tab);
@@ -543,6 +621,24 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
           query(collection(db, 'published_rates'), where('published', '==', true)),
           (snap) => setPublishedRates(snap.docs.map((d) => d.data() as PublishedEprRate)),
           onErr('published_rates')
+        )
+      );
+
+      unsubs.push(
+        onSnapshot(
+          query(collection(db, 'seo_pages'), where('published', '==', true)),
+          (snap) => setSeoPages(snap.docs.map((d) => d.data() as SeoPageRecord)),
+          onErr('seo_pages')
+        )
+      );
+
+      unsubs.push(
+        onSnapshot(
+          doc(db, 'seo_settings', 'default'),
+          (snap) => {
+            if (snap.exists()) setSeoSettings(snap.data() as SeoSettingsRecord);
+          },
+          onErr('seo_settings/default')
         )
       );
     }
@@ -903,6 +999,21 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
             if (s.exists()) setPlatformSettings(s.data() as PlatformSettingsRecord);
           }, onErr('platform_settings/default'))
         );
+        unsubs.push(
+          onSnapshot(collection(db, 'seo_pages'), (s) => {
+            setSeoPages(s.docs.map((d) => d.data() as SeoPageRecord));
+          }, onErr('seo_pages'))
+        );
+        unsubs.push(
+          onSnapshot(doc(db, 'seo_settings', 'default'), (s) => {
+            if (s.exists()) setSeoSettings(s.data() as SeoSettingsRecord);
+          }, onErr('seo_settings/default'))
+        );
+        unsubs.push(
+          onSnapshot(collection(db, 'seo_logs'), (s) => {
+            setSeoLogs(s.docs.map((d) => d.data() as SeoChangeLog));
+          }, onErr('seo_logs'))
+        );
       }
     }
 
@@ -1088,6 +1199,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setNotifications([]);
     setEmailDeliveryLogs([]);
     setAuditLogs([]);
+    setSeoLogs([]);
     addToast({ type: 'info', title: 'Signed out' });
   };
 
@@ -1464,12 +1576,28 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     active: boolean;
   }) => {
     await saveCategoryWithSubcategories(params);
+    if (authUser) {
+      try {
+        const idToken = await authUser.getIdToken();
+        await regenerateSitemapApi(idToken);
+      } catch {
+        // Sitemap cache refresh is best-effort after category mutation
+      }
+    }
     addToast({ type: 'success', title: `Category ${params.name} saved` });
   };
 
   const adminToggleCategory = async (cat: EPRCategory) => {
     try {
       await updateDoc(doc(db, 'categories', cat.id), { active: !cat.active });
+      if (authUser) {
+        try {
+          const idToken = await authUser.getIdToken();
+          await regenerateSitemapApi(idToken);
+        } catch {
+          // Best-effort sitemap refresh
+        }
+      }
       addToast({ type: 'info', title: `${cat.name} ${cat.active ? 'disabled' : 'enabled'}` });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `categories/${cat.id}`);
@@ -1806,6 +1934,193 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   };
 
+  const refreshSitemapIndex = async (
+    nextPages: SeoPageRecord[],
+    nextCats: EPRCategory[] = categories
+  ) => {
+    if (!authUser) return;
+    await syncSeoSettingsSummaryDoc({
+      pages: nextPages,
+      categories: nextCats,
+      actorUid: authUser.uid,
+    });
+    const idToken = await authUser.getIdToken();
+    await regenerateSitemapApi(idToken);
+  };
+
+  const adminSeedSeoPages = async (forceSyncMissing = false) => {
+    if (!authUser) return;
+    const { seededCount } = await seedInitialSeoPagesIfEmpty({
+      actorUid: authUser.uid,
+      actorEmail: authUser.email || '',
+      categories,
+      forceSyncMissing,
+    });
+    const idToken = await authUser.getIdToken();
+    await regenerateSitemapApi(idToken);
+    addToast({
+      type: 'success',
+      title: seededCount > 0 ? `Synchronized ${seededCount} public SEO page(s)` : 'All default pages are already synchronized',
+    });
+  };
+
+  const adminSaveSeoPage = async (params: {
+    id?: string;
+    slug: string;
+    pageType: 'core' | 'legal' | 'custom';
+    pageTitle: string;
+    contentSummary: string;
+    seoTitle?: string;
+    metaDescription?: string;
+    canonicalUrl?: string;
+    robots?: 'index, follow' | 'noindex, nofollow';
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
+    twitterCard?: 'summary_large_image' | 'summary';
+    published: boolean;
+    isSystemPage?: boolean;
+    aiDraftSeoTitle?: string;
+    aiDraftMetaDescription?: string;
+    aiDraftApproved?: boolean;
+  }) => {
+    if (!authUser) throw new Error('Administrator authentication required.');
+    const { id, isNew } = await saveSeoPageDoc({
+      ...params,
+      actorUid: authUser.uid,
+      actorEmail: authUser.email || '',
+    });
+    const simulatedUpdated: SeoPageRecord = {
+      id,
+      slug: normalizeSlug(params.slug),
+      pageType: params.pageType,
+      pageTitle: params.pageTitle,
+      contentSummary: params.contentSummary,
+      seoTitle: params.seoTitle || '',
+      metaDescription: params.metaDescription || '',
+      canonicalUrl: params.canonicalUrl || '',
+      robots: params.published ? params.robots || 'index, follow' : 'noindex, nofollow',
+      ogTitle: params.ogTitle || params.seoTitle || '',
+      ogDescription: params.ogDescription || params.metaDescription || '',
+      ogImage: params.ogImage || '',
+      twitterCard: params.twitterCard || 'summary_large_image',
+      published: params.published,
+      isSystemPage: Boolean(params.isSystemPage),
+      updatedByUid: authUser.uid,
+    };
+    const nextPages = isNew
+      ? [...seoPages, simulatedUpdated]
+      : seoPages.map((p) => (p.id === id ? { ...p, ...simulatedUpdated } : p));
+    await refreshSitemapIndex(nextPages);
+    addToast({
+      type: 'success',
+      title: isNew ? `Published SEO page ${simulatedUpdated.slug}` : `Updated SEO settings for ${simulatedUpdated.slug}`,
+    });
+  };
+
+  const adminToggleSeoPagePublish = async (page: SeoPageRecord) => {
+    if (!authUser) return;
+    const nextPublished = !page.published;
+    await toggleSeoPagePublishDoc({
+      page,
+      published: nextPublished,
+      actorUid: authUser.uid,
+      actorEmail: authUser.email || '',
+    });
+    const nextPages = seoPages.map((p) =>
+      p.id === page.id
+        ? {
+            ...p,
+            published: nextPublished,
+            robots: (nextPublished ? 'index, follow' : 'noindex, nofollow') as 'index, follow' | 'noindex, nofollow',
+          }
+        : p
+    );
+    await refreshSitemapIndex(nextPages);
+    addToast({
+      type: nextPublished ? 'success' : 'warning',
+      title: `${page.slug} ${nextPublished ? 'published to sitemap' : 'unpublished (excluded from search indexing)'}`,
+    });
+  };
+
+  const adminDeleteSeoPage = async (page: SeoPageRecord) => {
+    if (!authUser) return;
+    await deleteSeoPageDoc({
+      page,
+      actorUid: authUser.uid,
+      actorEmail: authUser.email || '',
+    });
+    const nextPages = seoPages.filter((p) => p.id !== page.id);
+    await refreshSitemapIndex(nextPages);
+    addToast({
+      type: 'warning',
+      title: `Deleted custom page ${page.slug} and updated sitemap`,
+    });
+  };
+
+  const adminRegenerateSitemap = async () => {
+    if (!authUser) return;
+    await syncSeoSettingsSummaryDoc({
+      pages: seoPages,
+      categories,
+      actorUid: authUser.uid,
+    });
+    const audit = auditSeoPages(
+      seoPages.map(toSeoPageInput),
+      categories.map((c) => ({
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        shortName: c.shortName,
+        description: c.description,
+        unit: c.unit,
+        active: c.active,
+      }))
+    );
+    await writeSeoLogDoc({
+      action: 'Sitemap Regenerated',
+      pageId: 'sitemap-index',
+      slug: '/sitemap.xml',
+      details: `Manual sitemap regeneration completed (${audit.totalUrlsInSitemap} indexable URLs · ${audit.sitemapStatus}).`,
+      actorUid: authUser.uid,
+      actorEmail: authUser.email || '',
+    });
+    const idToken = await authUser.getIdToken();
+    const res = await regenerateSitemapApi(idToken);
+    if (!res.ok && res.error) {
+      addToast({ type: 'warning', title: 'Sitemap metadata updated', description: res.error });
+      return;
+    }
+    addToast({
+      type: 'success',
+      title: `Sitemap regenerated (${audit.totalUrlsInSitemap} URLs indexed)`,
+    });
+  };
+
+  const adminRequestSeoSuggestion = async (input: {
+    pageTitle: string;
+    slug: string;
+    contentSummary: string;
+    existingTitles: string[];
+  }) => {
+    if (!authUser) {
+      return { error: 'Administrator sign-in required.' };
+    }
+    const idToken = await authUser.getIdToken();
+    const res = await requestSeoSuggestionApi(idToken, input);
+    if (res.ok && authUser) {
+      await writeSeoLogDoc({
+        action: 'Draft Generated',
+        pageId: normalizeSlug(input.slug),
+        slug: normalizeSlug(input.slug),
+        details: 'Generated unapproved SEO title & description suggestion for Admin review.',
+        actorUid: authUser.uid,
+        actorEmail: authUser.email || '',
+      });
+    }
+    return res;
+  };
+
   return (
     <MarketplaceContext.Provider
       value={{
@@ -1819,6 +2134,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
         pendingOnboardingRole,
         role,
         publicPage,
+        activeCustomSlug,
         selectedCategoryId,
         buyerTab,
         sellerTab,
@@ -1857,6 +2173,9 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
         emailDeliveryLogs,
         auditLogs,
         platformSettings,
+        seoPages,
+        seoSettings,
+        seoLogs,
         toasts,
         navigatePublic,
         setBuyerTab,
@@ -1897,6 +2216,12 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
         markNotificationRead,
         markAllNotificationsRead,
         retryFailedEmails,
+        adminSeedSeoPages,
+        adminSaveSeoPage,
+        adminToggleSeoPagePublish,
+        adminDeleteSeoPage,
+        adminRegenerateSitemap,
+        adminRequestSeoSuggestion,
       }}
     >
       {children}

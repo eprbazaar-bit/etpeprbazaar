@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  AlertTriangle,
   BarChart3,
   Bell,
   Building2,
@@ -7,9 +8,11 @@ import {
   ClipboardCheck,
   Cpu,
   CreditCard,
+  ExternalLink,
   FileSpreadsheet,
   FileText,
   FolderKanban,
+  Globe,
   Handshake,
   IndianRupee,
   LayoutDashboard,
@@ -17,11 +20,15 @@ import {
   Mail,
   MessageSquare,
   PackageCheck,
+  Plus,
   Receipt,
   RefreshCw,
+  Search,
   Settings,
   Shield,
   Sliders,
+  Sparkles,
+  Trash2,
   TrendingUp,
   UserCheck,
   Users,
@@ -41,7 +48,26 @@ import {
   StatusBadge,
 } from '../ui/DesignSystem';
 import { DocumentsView, NotificationsView, PaymentsView } from './SharedPortalViews';
-import { AdminTab, BuyerRequirement, EPRCategory, EmailDeliveryLog, PublishedEprRate, SellerListing, formatTime } from '../../types';
+import {
+  AdminTab,
+  BuyerRequirement,
+  EPRCategory,
+  EmailDeliveryLog,
+  PublishedEprRate,
+  SellerListing,
+  SeoPageRecord,
+  formatTime,
+} from '../../types';
+import {
+  auditSeoPages,
+  buildCanonicalUrl,
+  CANONICAL_ORIGIN,
+  DEFAULT_OG_IMAGE_URL,
+  DEFAULT_PUBLIC_SEO_PAGES,
+  normalizeSlug,
+  validateCanonicalUrl,
+} from '../../../shared/seoEngine';
+import { toSeoPageInput } from '../../services/seoService';
 
 export const AdminPortal: React.FC = () => {
   const {
@@ -68,6 +94,9 @@ export const AdminPortal: React.FC = () => {
     notifications,
     emailDeliveryLogs,
     platformSettings,
+    seoPages,
+    seoSettings,
+    seoLogs,
     adminApproveListing,
     adminApproveRequirement,
     adminVerifyUser,
@@ -82,6 +111,12 @@ export const AdminPortal: React.FC = () => {
     adminSavePlatformSettings,
     recordPayment,
     retryFailedEmails,
+    adminSeedSeoPages,
+    adminSaveSeoPage,
+    adminToggleSeoPagePublish,
+    adminDeleteSeoPage,
+    adminRegenerateSitemap,
+    adminRequestSeoSuggestion,
     addToast,
   } = useMarketplace();
 
@@ -140,6 +175,73 @@ export const AdminPortal: React.FC = () => {
   const [ratePublished, setRatePublished] = useState(true);
   const [savingRate, setSavingRate] = useState(false);
   const [deleteRateConfirm, setDeleteRateConfirm] = useState<PublishedEprRate | null>(null);
+
+  const [seoSearch, setSeoSearch] = useState('');
+  const [seoFilter, setSeoFilter] = useState<'ALL' | 'PUBLISHED' | 'UNPUBLISHED' | 'ISSUES'>('ALL');
+  const [regeneratingSitemap, setRegeneratingSitemap] = useState(false);
+  const [seedingSeo, setSeedingSeo] = useState(false);
+  const [seoModalOpen, setSeoModalOpen] = useState(false);
+  const [editSeoPage, setEditSeoPage] = useState<SeoPageRecord | null>(null);
+  const [seoSlug, setSeoSlug] = useState('');
+  const [seoPageType, setSeoPageType] = useState<'core' | 'legal' | 'custom'>('custom');
+  const [seoPageTitle, setSeoPageTitle] = useState('');
+  const [seoContentSummary, setSeoContentSummary] = useState('');
+  const [seoMetaTitle, setSeoMetaTitle] = useState('');
+  const [seoMetaDesc, setSeoMetaDesc] = useState('');
+  const [seoCanonical, setSeoCanonical] = useState('');
+  const [seoRobots, setSeoRobots] = useState<'index, follow' | 'noindex, nofollow'>('index, follow');
+  const [seoOgTitle, setSeoOgTitle] = useState('');
+  const [seoOgDesc, setSeoOgDesc] = useState('');
+  const [seoOgImage, setSeoOgImage] = useState(DEFAULT_OG_IMAGE_URL);
+  const [seoTwitterCard, setSeoTwitterCard] = useState<'summary_large_image' | 'summary'>('summary_large_image');
+  const [seoPublished, setSeoPublished] = useState(true);
+  const [savingSeo, setSavingSeo] = useState(false);
+  const [generatingSeoDraft, setGeneratingSeoDraft] = useState(false);
+  const [unapprovedDraft, setUnapprovedDraft] = useState<{
+    seoTitle: string;
+    metaDescription: string;
+    usedAi?: boolean;
+  } | null>(null);
+  const [draftApprovedFlag, setDraftApprovedFlag] = useState<boolean | undefined>(undefined);
+  const [deleteSeoConfirm, setDeleteSeoConfirm] = useState<SeoPageRecord | null>(null);
+
+  const openSeoEditor = (existing?: SeoPageRecord) => {
+    setUnapprovedDraft(null);
+    if (existing) {
+      setEditSeoPage(existing);
+      setSeoSlug(existing.slug);
+      setSeoPageType(existing.pageType);
+      setSeoPageTitle(existing.pageTitle);
+      setSeoContentSummary(existing.contentSummary);
+      setSeoMetaTitle(existing.seoTitle || '');
+      setSeoMetaDesc(existing.metaDescription || '');
+      setSeoCanonical(existing.canonicalUrl || buildCanonicalUrl(existing.slug));
+      setSeoRobots(existing.robots || 'index, follow');
+      setSeoOgTitle(existing.ogTitle || '');
+      setSeoOgDesc(existing.ogDescription || '');
+      setSeoOgImage(existing.ogImage || DEFAULT_OG_IMAGE_URL);
+      setSeoTwitterCard(existing.twitterCard || 'summary_large_image');
+      setSeoPublished(existing.published);
+      setDraftApprovedFlag(existing.aiDraftApproved);
+    } else {
+      setEditSeoPage(null);
+      setSeoSlug('/epr-compliance-guide');
+      setSeoPageType('custom');
+      setSeoPageTitle('');
+      setSeoContentSummary('');
+      setSeoMetaTitle('');
+      setSeoMetaDesc('');
+      setSeoCanonical(buildCanonicalUrl('/epr-compliance-guide'));
+      setSeoRobots('index, follow');
+      setSeoOgTitle('');
+      setSeoOgDesc('');
+      setSeoOgImage(DEFAULT_OG_IMAGE_URL);
+      setSeoTwitterCard('summary_large_image');
+      setSeoPublished(true);
+      setDraftApprovedFlag(undefined);
+    }
+    setSeoModalOpen(true);
+  };
 
   const openRateEditor = (existing?: PublishedEprRate) => {
     if (existing) {
@@ -220,6 +322,7 @@ export const AdminPortal: React.FC = () => {
     { id: 'reports', label: 'Reports & Analytics', icon: BarChart3 },
     { id: 'audit-logs', label: 'Audit Logs', icon: FileSpreadsheet },
     { id: 'notifications', label: 'Notifications', icon: Bell, badge: unreadNotifs },
+    { id: 'seo', label: 'SEO Management', icon: Globe },
     { id: 'settings', label: 'Platform Settings', icon: Settings },
     { id: 'permissions', label: 'Permissions', icon: Lock },
   ];
@@ -1971,6 +2074,813 @@ export const AdminPortal: React.FC = () => {
           </div>
         </div>
       )}
+
+      {adminTab === 'seo' && (() => {
+        const effectivePages: SeoPageRecord[] =
+          seoPages.length > 0
+            ? seoPages
+            : DEFAULT_PUBLIC_SEO_PAGES.map((p) => ({
+                id: p.id,
+                slug: p.slug,
+                pageType: p.pageType,
+                pageTitle: p.pageTitle,
+                contentSummary: p.contentSummary,
+                seoTitle: p.seoTitle || '',
+                metaDescription: p.metaDescription || '',
+                canonicalUrl: p.canonicalUrl || buildCanonicalUrl(p.slug),
+                robots: p.robots || 'index, follow',
+                ogTitle: p.ogTitle || p.seoTitle || '',
+                ogDescription: p.ogDescription || p.metaDescription || '',
+                ogImage: p.ogImage || DEFAULT_OG_IMAGE_URL,
+                twitterCard: p.twitterCard || 'summary_large_image',
+                published: p.published,
+                isSystemPage: p.isSystemPage,
+                updatedByUid: 'system',
+              }));
+
+        const audit = auditSeoPages(
+          effectivePages.map(toSeoPageInput),
+          categories.map((c) => ({
+            id: c.id,
+            code: c.code,
+            name: c.name,
+            shortName: c.shortName,
+            description: c.description,
+            unit: c.unit,
+            active: c.active,
+          }))
+        );
+
+        const filteredSeoPages = effectivePages.filter((p) => {
+          const v = audit.perPageValidation[p.id];
+          if (seoFilter === 'PUBLISHED' && !p.published) return false;
+          if (seoFilter === 'UNPUBLISHED' && p.published) return false;
+          if (seoFilter === 'ISSUES' && (!v || v.issues.length === 0)) return false;
+          if (seoSearch.trim()) {
+            const q = seoSearch.trim().toLowerCase();
+            return (
+              p.slug.toLowerCase().includes(q) ||
+              p.pageTitle.toLowerCase().includes(q) ||
+              (p.seoTitle || '').toLowerCase().includes(q)
+            );
+          }
+          return true;
+        });
+
+        const sortedSeoLogs = [...seoLogs].sort((a, b) => {
+          const toMs = (t: unknown) => {
+            if (!t) return 0;
+            if (typeof t === 'string') return Date.parse(t) || 0;
+            if (typeof (t as { toDate?: () => Date }).toDate === 'function') {
+              return (t as { toDate: () => Date }).toDate().getTime();
+            }
+            return 0;
+          };
+          return toMs(b.createdAt) - toMs(a.createdAt);
+        });
+
+        const activeCats = categories.filter((c) => c.active);
+        const modalCanonicalCheck = validateCanonicalUrl(seoCanonical, seoSlug || '/');
+
+        return (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h1 className="font-display text-xl font-bold text-[#0A172A]">
+                  Search Indexing &amp; SEO Management
+                </h1>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Manage canonical URLs, meta titles, descriptions, social share tags, and dynamic XML sitemaps for{' '}
+                  <span className="font-mono text-[#0A172A]">{CANONICAL_ORIGIN}</span>.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <a
+                  href="/sitemap.xml"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#CBD5E1] bg-white text-xs font-medium text-[#0A172A] hover:bg-[#F8FAFC] whitespace-nowrap"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-[#475569]" />
+                  View Sitemap XML
+                </a>
+                <a
+                  href="/robots.txt"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#CBD5E1] bg-white text-xs font-medium text-[#0A172A] hover:bg-[#F8FAFC] whitespace-nowrap"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-[#475569]" />
+                  View robots.txt
+                </a>
+                {(seoPages.length === 0 || seoPages.length < DEFAULT_PUBLIC_SEO_PAGES.length) && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={seedingSeo}
+                    onClick={async () => {
+                      setSeedingSeo(true);
+                      try {
+                        await adminSeedSeoPages(true);
+                      } finally {
+                        setSeedingSeo(false);
+                      }
+                    }}
+                  >
+                    {seedingSeo ? 'Syncing Pages...' : 'Sync Default Pages'}
+                  </Button>
+                )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={regeneratingSitemap}
+                  onClick={async () => {
+                    setRegeneratingSitemap(true);
+                    try {
+                      await adminRegenerateSitemap();
+                    } finally {
+                      setRegeneratingSitemap(false);
+                    }
+                  }}
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${regeneratingSitemap ? 'animate-spin' : ''}`} />
+                  {regeneratingSitemap ? 'Regenerating...' : 'Regenerate Sitemap'}
+                </Button>
+                <Button variant="primary" size="sm" onClick={() => openSeoEditor()}>
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Public Page
+                </Button>
+              </div>
+            </div>
+
+            {seoPages.length === 0 && (
+              <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-lg p-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5 text-xs text-[#92400E]">
+                  <AlertTriangle className="w-4 h-4 text-[#D97706] shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-semibold">Default public routes are active without saved overrides</div>
+                    <p className="mt-0.5">
+                      Click <strong>Sync Default Pages</strong> to initialize persistent records for all 16 public marketplace and policy pages before editing individual metadata.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={seedingSeo}
+                  onClick={async () => {
+                    setSeedingSeo(true);
+                    try {
+                      await adminSeedSeoPages(true);
+                    } finally {
+                      setSeedingSeo(false);
+                    }
+                  }}
+                >
+                  {seedingSeo ? 'Initializing...' : 'Sync Default Pages'}
+                </Button>
+              </div>
+            )}
+
+            {/* SEO Overview KPIs */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
+              <MetricCard label="Total Public Pages" value={audit.totalPublicPages} />
+              <MetricCard
+                label="Sitemap Status"
+                value={audit.sitemapStatus}
+                accent={audit.sitemapStatus === 'Healthy' ? 'emerald' : 'amber'}
+              />
+              <MetricCard
+                label="URLs in Sitemap"
+                value={audit.totalUrlsInSitemap}
+                accent="emerald"
+              />
+              <MetricCard
+                label="Missing Titles"
+                value={audit.pagesMissingTitles}
+                accent={audit.pagesMissingTitles > 0 ? 'amber' : 'slate'}
+              />
+              <MetricCard
+                label="Missing Descriptions"
+                value={audit.pagesMissingDescriptions}
+                accent={audit.pagesMissingDescriptions > 0 ? 'amber' : 'slate'}
+              />
+              <MetricCard
+                label="Duplicate Warnings"
+                value={audit.duplicateWarnings}
+                accent={audit.duplicateWarnings > 0 ? 'amber' : 'slate'}
+              />
+              <MetricCard
+                label="Canonical Errors"
+                value={audit.canonicalErrors}
+                accent={audit.canonicalErrors > 0 ? 'amber' : 'slate'}
+              />
+              <div className="bg-white border border-[#E2E8F0] rounded-lg p-4 flex flex-col justify-between">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                  Last Sitemap Update
+                </div>
+                <div className="font-mono text-xs font-semibold text-[#0A172A] mt-2 tabular-nums">
+                  {seoSettings?.lastRegeneratedAt || seoSettings?.updatedAt
+                    ? formatTime(seoSettings.lastRegeneratedAt || seoSettings.updatedAt)
+                    : 'Not synced yet'}
+                </div>
+              </div>
+            </div>
+
+            {/* Validation Alerts */}
+            {audit.issues.length > 0 && (
+              <div className="bg-white border border-[#FCD34D] rounded-lg p-4 space-y-2.5">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#92400E]">
+                  <AlertTriangle className="w-4 h-4 text-[#D97706]" />
+                  Metadata &amp; Canonical Diagnostics ({audit.issues.length} issue{audit.issues.length === 1 ? '' : 's'})
+                </div>
+                <div className="divide-y divide-[#FEF3C7]">
+                  {audit.issues.map((issue, idx) => {
+                    const targetPage = effectivePages.find((p) => p.id === issue.pageId);
+                    return (
+                      <div key={`${issue.pageId}-${idx}`} className="py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono font-semibold text-[#0A172A]">{issue.slug}</span>
+                          <span className="text-[#475569]">— {issue.message}</span>
+                        </div>
+                        {targetPage && (
+                          <Button variant="secondary" size="sm" onClick={() => openSeoEditor(targetPage)}>
+                            Fix Metadata
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Public Pages Metadata Table */}
+            <div className="bg-white border border-[#E2E8F0] rounded-lg overflow-hidden">
+              <div className="p-4 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-3 bg-[#F8FAFC]">
+                <div>
+                  <h2 className="font-display text-sm font-semibold text-[#0A172A]">
+                    Public Pages Metadata &amp; Canonical Index ({filteredSeoPages.length})
+                  </h2>
+                  <p className="text-[11px] text-[#64748B]">
+                    Restricted portals, sign-in, and private dashboards are permanently excluded from search indexing.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-[#94A3B8] absolute left-2.5 top-2.5" />
+                    <input
+                      type="text"
+                      value={seoSearch}
+                      onChange={(e) => setSeoSearch(e.target.value)}
+                      placeholder="Filter slug or title..."
+                      className="h-8.5 pl-8 pr-3 text-xs border border-[#CBD5E1] rounded-lg bg-white"
+                    />
+                  </div>
+                  <select
+                    value={seoFilter}
+                    onChange={(e) =>
+                      setSeoFilter(e.target.value as 'ALL' | 'PUBLISHED' | 'UNPUBLISHED' | 'ISSUES')
+                    }
+                    className="h-8.5 px-2.5 text-xs border border-[#CBD5E1] rounded-lg bg-white"
+                  >
+                    <option value="ALL">All Pages ({effectivePages.length})</option>
+                    <option value="PUBLISHED">Published ({effectivePages.filter((p) => p.published).length})</option>
+                    <option value="UNPUBLISHED">Unpublished ({effectivePages.filter((p) => !p.published).length})</option>
+                    <option value="ISSUES">With Warnings ({audit.issues.length})</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                      <th className="py-3 px-4">Slug &amp; Page</th>
+                      <th className="py-3 px-4">Type</th>
+                      <th className="py-3 px-4">SEO Title</th>
+                      <th className="py-3 px-4">Meta Description</th>
+                      <th className="py-3 px-4">Canonical URL</th>
+                      <th className="py-3 px-4">Indexing</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F1F5F9] text-xs">
+                    {filteredSeoPages.map((pg) => {
+                      const val = audit.perPageValidation[pg.id];
+                      const hasIssues = Boolean(val && val.issues.length > 0);
+                      return (
+                        <tr key={pg.id} className={hasIssues ? 'bg-[#FFFBEB]/60 hover:bg-[#FEF3C7]/40' : 'hover:bg-[#F8FAFC]'}>
+                          <td className="py-3 px-4">
+                            <div className="font-mono font-semibold text-[#10233F]">{pg.slug}</div>
+                            <div className="text-[#475569] mt-0.5">{pg.pageTitle}</div>
+                          </td>
+                          <td className="py-3 px-4 uppercase font-mono text-[11px] text-[#64748B]">{pg.pageType}</td>
+                          <td className="py-3 px-4 max-w-[220px]">
+                            <div className="truncate font-medium text-[#0A172A]">
+                              {pg.seoTitle || <span className="text-[#DC2626]">Missing title</span>}
+                            </div>
+                            <div className="font-mono text-[10px] text-[#64748B] tabular-nums">
+                              {(pg.seoTitle || '').length} chars
+                              {val?.hasDuplicateTitle ? ' · Duplicate' : ''}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 max-w-[240px]">
+                            <div className="truncate text-[#475569]">
+                              {pg.metaDescription || <span className="text-[#DC2626]">Missing description</span>}
+                            </div>
+                            <div className="font-mono text-[10px] text-[#64748B] tabular-nums">
+                              {(pg.metaDescription || '').length} chars
+                              {val?.hasDuplicateDescription ? ' · Duplicate' : ''}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 max-w-[220px]">
+                            <div className="truncate font-mono text-[11px] text-[#334155]">
+                              {pg.canonicalUrl}
+                            </div>
+                            {val && !val.canonicalValid && (
+                              <div className="text-[10px] font-semibold text-[#DC2626]">Canonical mismatch</div>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-[11px] text-[#475569] whitespace-nowrap">
+                            {pg.published ? pg.robots : 'noindex, nofollow'}
+                          </td>
+                          <td className="py-3 px-4">
+                            <StatusBadge status={pg.published ? 'Published' : 'Draft'} />
+                          </td>
+                          <td className="py-3 px-4 text-right space-x-1 whitespace-nowrap">
+                            <Button variant="secondary" size="sm" onClick={() => openSeoEditor(pg)}>
+                              Edit
+                            </Button>
+                            {seoPages.length > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => void adminToggleSeoPagePublish(pg)}
+                              >
+                                {pg.published ? 'Unpublish' : 'Publish'}
+                              </Button>
+                            )}
+                            {!pg.isSystemPage && seoPages.length > 0 && (
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => setDeleteSeoConfirm(pg)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Active Category URLs included in Category Sitemap */}
+            <div className="bg-white border border-[#E2E8F0] rounded-lg overflow-hidden">
+              <div className="p-4 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-3 bg-[#F8FAFC]">
+                <div>
+                  <h2 className="font-display text-sm font-semibold text-[#0A172A]">
+                    Active Category Index URLs ({activeCats.length})
+                  </h2>
+                  <p className="text-[11px] text-[#64748B]">
+                    Published automatically in <span className="font-mono">/sitemap-categories.xml</span> whenever categories are added or updated.
+                  </p>
+                </div>
+                <a
+                  href="/sitemap-categories.xml"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-[#1E3A8A] hover:underline"
+                >
+                  Open Category Sitemap <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+              {activeCats.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[#64748B]">
+                  No active EPR categories configured yet. Active categories will appear here and enter the category sitemap automatically.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                        <th className="py-2.5 px-4">Code</th>
+                        <th className="py-2.5 px-4">Category Name</th>
+                        <th className="py-2.5 px-4">Canonical URL</th>
+                        <th className="py-2.5 px-4">Unit</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F1F5F9] text-xs">
+                      {activeCats.map((cat) => (
+                        <tr key={cat.id} className="hover:bg-[#F8FAFC]">
+                          <td className="py-2.5 px-4 font-mono font-semibold">{cat.code}</td>
+                          <td className="py-2.5 px-4 font-medium text-[#0A172A]">{cat.name}</td>
+                          <td className="py-2.5 px-4 font-mono text-[11px] text-[#1E3A8A]">
+                            {buildCanonicalUrl(`/category/${encodeURIComponent(cat.id)}`)}
+                          </td>
+                          <td className="py-2.5 px-4 font-mono">{cat.unit}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* SEO Change History */}
+            <div className="bg-white border border-[#E2E8F0] rounded-lg overflow-hidden">
+              <div className="p-4 border-b border-[#E2E8F0] bg-[#F8FAFC]">
+                <h2 className="font-display text-sm font-semibold text-[#0A172A]">
+                  SEO &amp; Sitemap Change Log ({sortedSeoLogs.length})
+                </h2>
+              </div>
+              {sortedSeoLogs.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[#64748B]">
+                  No SEO updates recorded yet. Metadata edits, page publishing actions, and manual sitemap regenerations are logged here.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                        <th className="py-2.5 px-4">Timestamp</th>
+                        <th className="py-2.5 px-4">Action</th>
+                        <th className="py-2.5 px-4">Page Slug</th>
+                        <th className="py-2.5 px-4">Updated By</th>
+                        <th className="py-2.5 px-4">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F1F5F9] text-xs">
+                      {sortedSeoLogs.slice(0, 25).map((log) => (
+                        <tr key={log.id} className="hover:bg-[#F8FAFC]">
+                          <td className="py-2.5 px-4 font-mono text-[#64748B] whitespace-nowrap">
+                            {formatTime(log.createdAt)}
+                          </td>
+                          <td className="py-2.5 px-4">
+                            <StatusBadge status={log.action} />
+                          </td>
+                          <td className="py-2.5 px-4 font-mono font-medium text-[#0A172A]">{log.slug}</td>
+                          <td className="py-2.5 px-4 font-mono text-[#475569]">{log.actorEmail}</td>
+                          <td className="py-2.5 px-4 text-[#475569]">{log.details}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Create / Edit SEO Page Modal */}
+            <Modal
+              open={seoModalOpen}
+              onClose={() => setSeoModalOpen(false)}
+              title={editSeoPage ? `Edit SEO Metadata — ${editSeoPage.slug}` : 'Create & Publish Public SEO Page'}
+              maxWidth="max-w-2xl"
+            >
+              <form
+                className="space-y-4"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setSavingSeo(true);
+                  try {
+                    await adminSaveSeoPage({
+                      id: editSeoPage?.id,
+                      slug: seoSlug,
+                      pageType: editSeoPage ? editSeoPage.pageType : seoPageType,
+                      pageTitle: seoPageTitle,
+                      contentSummary: seoContentSummary,
+                      seoTitle: seoMetaTitle,
+                      metaDescription: seoMetaDesc,
+                      canonicalUrl: seoCanonical,
+                      robots: seoRobots,
+                      ogTitle: seoOgTitle,
+                      ogDescription: seoOgDesc,
+                      ogImage: seoOgImage,
+                      twitterCard: seoTwitterCard,
+                      published: seoPublished,
+                      isSystemPage: editSeoPage?.isSystemPage ?? false,
+                      ...(unapprovedDraft
+                        ? {
+                            aiDraftSeoTitle: unapprovedDraft.seoTitle,
+                            aiDraftMetaDescription: unapprovedDraft.metaDescription,
+                            aiDraftApproved: Boolean(draftApprovedFlag),
+                          }
+                        : draftApprovedFlag !== undefined
+                          ? { aiDraftApproved: draftApprovedFlag }
+                          : {}),
+                    });
+                    setSeoModalOpen(false);
+                  } catch (err) {
+                    addToast({
+                      type: 'error',
+                      title: 'Unable to save SEO settings',
+                      description: err instanceof Error ? err.message : 'Check canonical URL and fields.',
+                    });
+                  } finally {
+                    setSavingSeo(false);
+                  }
+                }}
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#334155] mb-1">Page Title *</label>
+                    <input
+                      required
+                      value={seoPageTitle}
+                      onChange={(e) => setSeoPageTitle(e.target.value)}
+                      placeholder="e.g. Plastic EPR Compliance Guide"
+                      className="w-full h-10 px-3 text-sm border border-[#CBD5E1] rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#334155] mb-1">Public URL Path *</label>
+                    <input
+                      required
+                      disabled={Boolean(editSeoPage?.isSystemPage)}
+                      value={seoSlug}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSeoSlug(val);
+                        setSeoCanonical(buildCanonicalUrl(val));
+                      }}
+                      placeholder="/epr-compliance-guide"
+                      className="w-full h-10 px-3 text-sm font-mono border border-[#CBD5E1] rounded-lg disabled:bg-[#F1F5F9]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Page Content Summary *
+                  </label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={seoContentSummary}
+                    onChange={(e) => setSeoContentSummary(e.target.value)}
+                    placeholder="Concise business description displayed on custom pages and used to generate metadata suggestions..."
+                    className="w-full p-2.5 text-sm border border-[#CBD5E1] rounded-lg"
+                  />
+                </div>
+
+                {/* Unapproved Metadata Draft Generator (Requires Explicit Admin Approval) */}
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-3">
+                  <div className="text-xs text-[#475569]">
+                    Generate a metadata draft from page content. Drafts require your explicit review before saving or publishing.
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={generatingSeoDraft || !seoPageTitle.trim()}
+                    onClick={async () => {
+                      setGeneratingSeoDraft(true);
+                      try {
+                        const res = await adminRequestSeoSuggestion({
+                          pageTitle: seoPageTitle,
+                          slug: seoSlug || '/',
+                          contentSummary: seoContentSummary,
+                          existingTitles: effectivePages
+                            .filter((p) => p.id !== editSeoPage?.id)
+                            .map((p) => p.seoTitle)
+                            .filter(Boolean),
+                        });
+                        if (res.error) {
+                          addToast({ type: 'error', title: 'Draft generation failed', description: res.error });
+                        } else if (res.aiDraftSeoTitle && res.aiDraftMetaDescription) {
+                          setUnapprovedDraft({
+                            seoTitle: res.aiDraftSeoTitle,
+                            metaDescription: res.aiDraftMetaDescription,
+                            usedAi: res.usedAi,
+                          });
+                          setDraftApprovedFlag(false);
+                        }
+                      } finally {
+                        setGeneratingSeoDraft(false);
+                      }
+                    }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {generatingSeoDraft ? 'Drafting...' : 'Generate Draft Suggestion'}
+                  </Button>
+                </div>
+
+                {unapprovedDraft && (
+                  <div className="bg-[#FFFBEB] border border-[#FCD34D] rounded-lg p-3.5 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-[#92400E]">
+                        Unapproved Draft Suggestion — Review Before Applying
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="emerald"
+                          size="sm"
+                          onClick={() => {
+                            setSeoMetaTitle(unapprovedDraft.seoTitle);
+                            setSeoMetaDesc(unapprovedDraft.metaDescription);
+                            if (!seoOgTitle) setSeoOgTitle(unapprovedDraft.seoTitle);
+                            if (!seoOgDesc) setSeoOgDesc(unapprovedDraft.metaDescription);
+                            setDraftApprovedFlag(true);
+                            setUnapprovedDraft(null);
+                            addToast({ type: 'success', title: 'Draft applied to editor for your final save' });
+                          }}
+                        >
+                          Approve &amp; Apply Draft
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setUnapprovedDraft(null);
+                            setDraftApprovedFlag(false);
+                          }}
+                        >
+                          Discard
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="text-xs text-[#78350F]">
+                      <div>
+                        <strong>Suggested Title:</strong> {unapprovedDraft.seoTitle}
+                      </div>
+                      <div className="mt-1">
+                        <strong>Suggested Description:</strong> {unapprovedDraft.metaDescription}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-3 pt-2 border-t border-[#E2E8F0]">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-semibold text-[#334155]">SEO Meta Title</label>
+                      <span className="font-mono text-[11px] text-[#64748B] tabular-nums">
+                        {seoMetaTitle.length} / 65 chars
+                      </span>
+                    </div>
+                    <input
+                      maxLength={120}
+                      value={seoMetaTitle}
+                      onChange={(e) => setSeoMetaTitle(e.target.value)}
+                      placeholder="Unique page title | ETP – EPR Bazaar"
+                      className="w-full h-10 px-3 text-sm border border-[#CBD5E1] rounded-lg"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-semibold text-[#334155]">Meta Description</label>
+                      <span className="font-mono text-[11px] text-[#64748B] tabular-nums">
+                        {seoMetaDesc.length} / 160 chars
+                      </span>
+                    </div>
+                    <textarea
+                      rows={2}
+                      maxLength={320}
+                      value={seoMetaDesc}
+                      onChange={(e) => setSeoMetaDesc(e.target.value)}
+                      placeholder="Clear factual summary for search engine snippets (120–160 characters recommended)."
+                      className="w-full p-2.5 text-sm border border-[#CBD5E1] rounded-lg"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#334155] mb-1">
+                        Canonical URL (HTTPS)
+                      </label>
+                      <input
+                        required
+                        value={seoCanonical}
+                        onChange={(e) => setSeoCanonical(e.target.value)}
+                        className="w-full h-10 px-3 text-xs font-mono border border-[#CBD5E1] rounded-lg"
+                      />
+                      {!modalCanonicalCheck.valid && (
+                        <p className="text-[11px] text-[#DC2626] mt-1">{modalCanonicalCheck.reason}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#334155] mb-1">
+                        Search Indexing Directive
+                      </label>
+                      <select
+                        value={seoPublished ? seoRobots : 'noindex, nofollow'}
+                        disabled={!seoPublished}
+                        onChange={(e) =>
+                          setSeoRobots(e.target.value as 'index, follow' | 'noindex, nofollow')
+                        }
+                        className="w-full h-10 px-3 text-xs font-mono border border-[#CBD5E1] rounded-lg bg-white disabled:bg-[#F1F5F9]"
+                      >
+                        <option value="index, follow">index, follow</option>
+                        <option value="noindex, nofollow">noindex, nofollow</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#334155] mb-1">Open Graph Title</label>
+                      <input
+                        maxLength={120}
+                        value={seoOgTitle}
+                        onChange={(e) => setSeoOgTitle(e.target.value)}
+                        placeholder="Defaults to SEO Title"
+                        className="w-full h-10 px-3 text-sm border border-[#CBD5E1] rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#334155] mb-1">Social Share Card</label>
+                      <select
+                        value={seoTwitterCard}
+                        onChange={(e) =>
+                          setSeoTwitterCard(e.target.value as 'summary_large_image' | 'summary')
+                        }
+                        className="w-full h-10 px-3 text-sm border border-[#CBD5E1] rounded-lg bg-white"
+                      >
+                        <option value="summary_large_image">Large Summary Card</option>
+                        <option value="summary">Compact Summary Card</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#334155] mb-1">Open Graph Description</label>
+                    <input
+                      maxLength={320}
+                      value={seoOgDesc}
+                      onChange={(e) => setSeoOgDesc(e.target.value)}
+                      placeholder="Defaults to Meta Description"
+                      className="w-full h-10 px-3 text-sm border border-[#CBD5E1] rounded-lg"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#334155] mb-1">Open Graph Image URL</label>
+                    <input
+                      maxLength={400}
+                      value={seoOgImage}
+                      onChange={(e) => setSeoOgImage(e.target.value)}
+                      className="w-full h-10 px-3 text-xs font-mono border border-[#CBD5E1] rounded-lg"
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-2.5 text-xs font-medium text-[#0A172A] pt-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={seoPublished}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setSeoPublished(checked);
+                        setSeoRobots(checked ? 'index, follow' : 'noindex, nofollow');
+                      }}
+                      className="w-4 h-4 rounded border-[#CBD5E1]"
+                    />
+                    Publish page publicly and include canonical URL in sitemap.xml
+                  </label>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
+                  <Button variant="secondary" onClick={() => setSeoModalOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={savingSeo || !modalCanonicalCheck.valid}
+                  >
+                    {savingSeo ? 'Saving & Updating Sitemap...' : 'Save & Refresh Sitemap'}
+                  </Button>
+                </div>
+              </form>
+            </Modal>
+
+            <ConfirmModal
+              open={deleteSeoConfirm !== null}
+              onClose={() => setDeleteSeoConfirm(null)}
+              onConfirm={() => {
+                if (!deleteSeoConfirm) return;
+                void adminDeleteSeoPage(deleteSeoConfirm);
+                setDeleteSeoConfirm(null);
+              }}
+              title="Delete Public Page & Remove From Sitemap"
+              description={
+                deleteSeoConfirm
+                  ? `Permanently delete custom public page "${deleteSeoConfirm.pageTitle}" (${deleteSeoConfirm.slug}) and remove its canonical URL from the XML sitemap?`
+                  : ''
+              }
+              confirmLabel="Delete Page"
+              variant="danger"
+            />
+          </div>
+        );
+      })()}
 
       <Modal
         open={staffModalRole !== null}
